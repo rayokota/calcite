@@ -179,6 +179,7 @@ limitations under the License.
     <module>elasticsearch</module>
     <module>example</module>
     <module>file</module>
+    <module>table</module>
     <module>geode</module>
     <module>kafka</module>
     <module>linq4j</module>

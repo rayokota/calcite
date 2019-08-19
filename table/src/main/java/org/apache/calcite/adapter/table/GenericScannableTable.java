@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.table;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -32,10 +32,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>It implements the {@link ScannableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext)} method.
  */
-public class CsvScannableTable extends CsvTable
+public class GenericScannableTable extends GenericTable
     implements ScannableTable {
   /** Creates a CsvScannableTable. */
-  public CsvScannableTable(Source source, RelProtoDataType protoRowType) {
+  public GenericScannableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
@@ -44,12 +44,12 @@ public class CsvScannableTable extends CsvTable
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
-    final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final int[] fields = GenericTableEnumerator.identityList(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvEnumerator<>(source, cancelFlag, false, null,
-            new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
+        return new GenericTableEnumerator<>(source, cancelFlag, false, null,
+            new GenericTableEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };
   }

@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.csv.CsvFilterableTable;
+import org.apache.calcite.adapter.csv.CsvScannableTable;
+import org.apache.calcite.adapter.csv.CsvTranslatableTable;
 import org.apache.calcite.adapter.csv.JsonScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -145,7 +147,7 @@ class FileSchema extends AbstractSchema {
     }
     final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
     if (sourceSansCsv != null) {
-      final Table table = new CsvFilterableTable(source, null);
+      final Table table = new CsvScannableTable(source, null);
       builder.put(Util.first(tableName, sourceSansCsv.path()), table);
       return true;
     }

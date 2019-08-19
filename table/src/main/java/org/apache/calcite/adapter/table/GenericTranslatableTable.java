@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.table;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -38,10 +38,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Table based on a CSV file.
  */
-public class CsvTranslatableTable extends CsvTable
+public class GenericTranslatableTable extends GenericTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  public CsvTranslatableTable(Source source, RelProtoDataType protoRowType) {
+  public GenericTranslatableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
@@ -57,7 +57,7 @@ public class CsvTranslatableTable extends CsvTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new CsvEnumerator<>(source, cancelFlag, fieldTypes, fields);
+        return new GenericTableEnumerator<>(source, cancelFlag, fieldTypes, fields);
       }
     };
   }
@@ -81,8 +81,8 @@ public class CsvTranslatableTable extends CsvTable
       RelOptTable relOptTable) {
     // Request all fields.
     final int fieldCount = relOptTable.getRowType().getFieldCount();
-    final int[] fields = CsvEnumerator.identityList(fieldCount);
-    return new CsvTableScan(context.getCluster(), relOptTable, this, fields);
+    final int[] fields = GenericTableEnumerator.identityList(fieldCount);
+    return new GenericTableScan(context.getCluster(), relOptTable, this, fields);
   }
 }
 

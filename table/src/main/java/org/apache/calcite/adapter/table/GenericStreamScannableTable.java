@@ -14,16 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.csv;
+package org.apache.calcite.adapter.table;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.StreamableTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.Source;
 
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -32,27 +38,43 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>It implements the {@link ScannableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext)} method.
  */
-public class CsvScannableTable extends CsvTable
-    implements ScannableTable {
+public class GenericStreamScannableTable extends GenericScannableTable
+    implements StreamableTable {
   /** Creates a CsvScannableTable. */
-  public CsvScannableTable(Source source, RelProtoDataType protoRowType) {
+  GenericStreamScannableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    if (protoRowType != null) {
+      return protoRowType.apply(typeFactory);
+    }
+    if (fieldTypes == null) {
+      fieldTypes = new ArrayList<>();
+      return GenericTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, fieldTypes, true);
+    } else {
+      return GenericTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, null, true);
+    }
+  }
+
   public String toString() {
-    return "CsvScannableTable";
+    return "CsvStreamScannableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
-    final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+    final int[] fields = GenericTableEnumerator.identityList(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvEnumerator<>(source, cancelFlag, false, null,
-            new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
+        return new GenericTableEnumerator<>(source, cancelFlag, true, null,
+            new GenericTableEnumerator.ArrayRowConverter(fieldTypes, fields, true));
       }
     };
   }
+
+  @Override public Table stream() {
+    return this;
+  }
 }
 
-// End CsvScannableTable.java
+// End CsvStreamScannableTable.java
