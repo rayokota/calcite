@@ -24,7 +24,7 @@
         {
           "name": "DEPTS",
           "type": "custom",
-          "factory": "org.apache.calcite.adapter.table.GenericStreamTableFactory",
+          "factory": "org.apache.calcite.adapter.table.SortedStreamTableFactory",
           "stream": {
             "stream": true
           },

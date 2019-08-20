@@ -21,6 +21,6 @@ defaultSchema: SALES
 schemas:
 - name: SALES
   type: custom
-  factory: org.apache.calcite.adapter.table.GenericTableSchemaFactory
+  factory: org.apache.calcite.adapter.table.SortedTableSchemaFactory
   operand:
     directory: sales

@@ -27,7 +27,7 @@ limitations under the License.
   <packaging>jar</packaging>
   <version>1.21.0-SNAPSHOT</version>
   <name>Calcite Table</name>
-  <description>An example Calcite provider that reads generic tables</description>
+  <description>An example Calcite provider that reads Sorted tables</description>
 
   <properties>
     <top.dir>${project.basedir}/../..</top.dir>

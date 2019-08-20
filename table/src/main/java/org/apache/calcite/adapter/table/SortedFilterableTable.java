@@ -38,26 +38,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>It implements the {@link FilterableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext, List)} method.
  */
-public class GenericFilterableTable extends GenericTable
+public class SortedFilterableTable extends SortedTable
     implements FilterableTable {
   /** Creates a CsvFilterableTable. */
-  public GenericFilterableTable(Source source, RelProtoDataType protoRowType) {
+  public SortedFilterableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
   public String toString() {
-    return "GenericFilterableTable";
+    return "SortedFilterableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
-    final int[] fields = GenericTableEnumerator.identityList(fieldTypes.size());
+    final int[] fields = SortedTableEnumerator.identityList(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new GenericTableEnumerator<>(source, cancelFlag, false, filterValues,
-            new GenericTableEnumerator.ArrayRowConverter(fieldTypes, fields));
+        return new SortedTableEnumerator<>(source, cancelFlag, false, filterValues,
+            new SortedTableEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };
   }

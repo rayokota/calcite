@@ -32,24 +32,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>It implements the {@link ScannableTable} interface, so Calcite gets
  * data by calling the {@link #scan(DataContext)} method.
  */
-public class GenericScannableTable extends GenericTable
+public class SortedScannableTable extends SortedTable
     implements ScannableTable {
   /** Creates a CsvScannableTable. */
-  public GenericScannableTable(Source source, RelProtoDataType protoRowType) {
+  public SortedScannableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
   public String toString() {
-    return "GenericScannableTable";
+    return "SortedScannableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
-    final int[] fields = GenericTableEnumerator.identityList(fieldTypes.size());
+    final int[] fields = SortedTableEnumerator.identityList(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new GenericTableEnumerator<>(source, cancelFlag, false, null,
-            new GenericTableEnumerator.ArrayRowConverter(fieldTypes, fields));
+        return new SortedTableEnumerator<>(source, cancelFlag, false, null,
+            new SortedTableEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };
   }

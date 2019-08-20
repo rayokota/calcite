@@ -30,9 +30,9 @@ import java.util.Map;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class GenericTableSchema extends AbstractSchema {
+public class SortedTableSchema extends AbstractSchema {
   private final File directoryFile;
-  private final GenericTable.Flavor flavor;
+  private final SortedTable.Flavor flavor;
   private Map<String, Table> tableMap;
 
   /**
@@ -42,7 +42,7 @@ public class GenericTableSchema extends AbstractSchema {
    * @param flavor     Whether to instantiate flavor tables that undergo
    *                   query optimization
    */
-  public GenericTableSchema(File directoryFile, GenericTable.Flavor flavor) {
+  public SortedTableSchema(File directoryFile, SortedTable.Flavor flavor) {
     super();
     this.directoryFile = directoryFile;
     this.flavor = flavor;
@@ -103,11 +103,11 @@ public class GenericTableSchema extends AbstractSchema {
   private Table createTable(Source source) {
     switch (flavor) {
     case TRANSLATABLE:
-      return new GenericTranslatableTable(source, null);
+      return new SortedTranslatableTable(source, null);
     case SCANNABLE:
-      return new GenericScannableTable(source, null);
+      return new SortedScannableTable(source, null);
     case FILTERABLE:
-      return new GenericFilterableTable(source, null);
+      return new SortedFilterableTable(source, null);
     default:
       throw new AssertionError("Unknown flavor " + this.flavor);
     }

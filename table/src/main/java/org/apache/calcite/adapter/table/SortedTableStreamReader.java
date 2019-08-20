@@ -34,7 +34,7 @@ import java.util.Queue;
 /**
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
-public class GenericTableStreamReader extends CSVReader implements Closeable {
+public class SortedTableStreamReader extends CSVReader implements Closeable {
   protected CSVParser parser;
   protected int skipLines;
   protected Tailer tailer;
@@ -50,7 +50,7 @@ public class GenericTableStreamReader extends CSVReader implements Closeable {
    */
   public static final long DEFAULT_MONITOR_DELAY = 2000;
 
-  GenericTableStreamReader(Source source) {
+  SortedTableStreamReader(Source source) {
     this(source,
       CSVParser.DEFAULT_SEPARATOR,
       CSVParser.DEFAULT_QUOTE_CHARACTER,
@@ -72,9 +72,9 @@ public class GenericTableStreamReader extends CSVReader implements Closeable {
    * @param ignoreLeadingWhiteSpace If true, parser should ignore
    *  white space before a quote in a field
    */
-  private GenericTableStreamReader(Source source, char separator, char quoteChar,
-                                   char escape, int line, boolean strictQuotes,
-                                   boolean ignoreLeadingWhiteSpace) {
+  private SortedTableStreamReader(Source source, char separator, char quoteChar,
+                                  char escape, int line, boolean strictQuotes,
+                                  boolean ignoreLeadingWhiteSpace) {
     super(new StringReader("")); // dummy call to base constructor
     contentQueue = new ArrayDeque<>();
     TailerListener listener = new CsvContentListener(contentQueue);

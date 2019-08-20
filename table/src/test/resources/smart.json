@@ -20,7 +20,7 @@
  *
  * A JSON model of a Calcite schema that is similar to model.json,
  * except that it produces tables that implement
- * TranslatableTable. These tables are translated to a GenericTableScan
+ * TranslatableTable. These tables are translated to a SortedTableScan
  * relational expression which participates in query planning.
  */
 {
@@ -30,7 +30,7 @@
     {
       "name": "SALES",
       "type": "custom",
-      "factory": "org.apache.calcite.adapter.table.GenericTableSchemaFactory",
+      "factory": "org.apache.calcite.adapter.table.SortedTableSchemaFactory",
       "operand": {
         "directory": "sales",
         "flavor": "TRANSLATABLE"

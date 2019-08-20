@@ -29,13 +29,13 @@ import java.util.List;
 /**
  * Base class for table that reads CSV files.
  */
-public abstract class GenericTable extends AbstractTable {
+public abstract class SortedTable extends AbstractTable {
   protected final Source source;
   protected final RelProtoDataType protoRowType;
-  protected List<GenericTableColumnType> fieldTypes;
+  protected List<SortedTableColumnType> fieldTypes;
 
   /** Creates a CsvTable. */
-  GenericTable(Source source, RelProtoDataType protoRowType) {
+  SortedTable(Source source, RelProtoDataType protoRowType) {
     this.source = source;
     this.protoRowType = protoRowType;
   }
@@ -46,10 +46,10 @@ public abstract class GenericTable extends AbstractTable {
     }
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();
-      return GenericTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
+      return SortedTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
           fieldTypes);
     } else {
-      return GenericTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
+      return SortedTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
           null);
     }
   }

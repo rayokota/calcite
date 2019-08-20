@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.table.GenericTableSchemaFactory;
-import org.apache.calcite.adapter.table.GenericStreamTableFactory;
+import org.apache.calcite.adapter.table.SortedTableSchemaFactory;
+import org.apache.calcite.adapter.table.SortedStreamTableFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -65,7 +65,7 @@ import static org.junit.Assert.fail;
 /**
  * Unit test of the Calcite adapter for CSV.
  */
-public class GenericTableTest {
+public class SortedTableTest {
   private void close(Connection connection, Statement statement) {
     if (statement != null) {
       try {
@@ -153,7 +153,7 @@ public class GenericTableTest {
             + "     {\n"
             + "       type: 'custom',\n"
             + "       name: 'bad',\n"
-            + "       factory: 'org.apache.calcite.adapter.table.GenericTableSchemaFactory',\n"
+            + "       factory: 'org.apache.calcite.adapter.table.SortedTableSchemaFactory',\n"
             + "       operand: {\n"
             + "         directory: '/does/not/exist'\n"
             + "       }\n"
@@ -219,14 +219,14 @@ public class GenericTableTest {
 
   @Test public void testPushDownProject() throws SQLException {
     final String sql = "explain plan for select * from EMPS";
-    final String expected = "PLAN=GenericTableScan(table=[[SALES, EMPS]], "
+    final String expected = "PLAN=SortedTableScan(table=[[SALES, EMPS]], "
         + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
   @Test public void testPushDownProject2() throws SQLException {
     sql("smart", "explain plan for select name, empno from EMPS")
-        .returns("PLAN=GenericTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n")
+        .returns("PLAN=SortedTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n")
         .ok();
     // make sure that it works...
     sql("smart", "select name, empno from EMPS")
@@ -243,7 +243,7 @@ public class GenericTableTest {
         + "select gender, count(*) from EMPS group by gender";
     final String expected = "PLAN="
         + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
-        + "  GenericTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
+        + "  SortedTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
@@ -254,7 +254,7 @@ public class GenericTableTest {
         + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
         + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
         + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-        + "    GenericTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
+        + "    SortedTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
@@ -269,7 +269,7 @@ public class GenericTableTest {
     final String expected = "PLAN="
         + "EnumerableAggregate(group=[{1}], EXPR$1=[MAX($2)])\n"
         + "  EnumerableAggregate(group=[{0, 1}], QTY=[COUNT()])\n"
-        + "    GenericTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
+        + "    SortedTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
@@ -281,7 +281,7 @@ public class GenericTableTest {
     sql("filterable-model", "select * from EMPS").ok();
   }
 
-  /** Filter that can be fully handled by GenericFilterableTable. */
+  /** Filter that can be fully handled by SortedFilterableTable. */
   @Test public void testFilterableWhere() throws SQLException {
     final String sql =
         "select empno, gender, name from EMPS where name = 'John'";
@@ -289,7 +289,7 @@ public class GenericTableTest {
         .returns("EMPNO=110; GENDER=M; NAME=John").ok();
   }
 
-  /** Filter that can be partly handled by GenericFilterableTable. */
+  /** Filter that can be partly handled by SortedFilterableTable. */
   @Test public void testFilterableWhere2() throws SQLException {
     final String sql = "select empno, gender, name from EMPS\n"
         + " where gender = 'F' and empno > 125";
@@ -297,7 +297,7 @@ public class GenericTableTest {
         .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
-  /** Filter that can be slightly handled by GenericFilterableTable. */
+  /** Filter that can be slightly handled by SortedFilterableTable. */
   @Test public void testFilterableWhere3() throws SQLException {
     final String sql = "select empno, gender, name from EMPS\n"
             + " where gender <> 'M' and empno > 125";
@@ -339,7 +339,7 @@ public class GenericTableTest {
     return resultSet -> {
       try {
         final List<String> lines = new ArrayList<>();
-        GenericTableTest.collect(lines, resultSet);
+        SortedTableTest.collect(lines, resultSet);
         Assert.assertEquals(Arrays.asList(expected), lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
@@ -355,7 +355,7 @@ public class GenericTableTest {
     return resultSet -> {
       try {
         final List<String> lines = new ArrayList<>();
-        GenericTableTest.collect(lines, resultSet);
+        SortedTableTest.collect(lines, resultSet);
         Collections.sort(lines);
         Assert.assertEquals(expectedLines, lines);
       } catch (SQLException e) {
@@ -387,7 +387,7 @@ public class GenericTableTest {
   }
 
   private String resourcePath(String path) {
-    return Sources.of(GenericTableTest.class.getResource("/" + path)).file().getAbsolutePath();
+    return Sources.of(SortedTableTest.class.getResource("/" + path)).file().getAbsolutePath();
   }
 
   private static void collect(List<String> result, ResultSet resultSet)
@@ -677,8 +677,8 @@ public class GenericTableTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
-   * In prepared statement, GenericScannableTable.scan is called twice</a>. To see
-   * the bug, place a breakpoint in GenericScannableTable.scan, and note that it is
+   * In prepared statement, SortedScannableTable.scan is called twice</a>. To see
+   * the bug, place a breakpoint in SortedScannableTable.scan, and note that it is
    * called twice. It should only be called once. */
   @Test public void testPrepared() throws SQLException {
     final Properties properties = new Properties();
@@ -689,7 +689,7 @@ public class GenericTableTest {
           CalciteConnection.class);
 
       final Schema schema =
-          GenericTableSchemaFactory.INSTANCE
+          SortedTableSchemaFactory.INSTANCE
               .create(calciteConnection.getRootSchema(), null,
                   ImmutableMap.of("directory",
                       resourcePath("sales"), "flavor", "scannable"));
@@ -869,7 +869,7 @@ public class GenericTableTest {
   }
 
   @Ignore("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
-  @Test(timeout = 10000) public void testGenericTableStream() throws Exception {
+  @Test(timeout = 10000) public void testSortedTableStream() throws Exception {
     final File file = File.createTempFile("stream", "csv");
     final String model = "{\n"
         + "  version: '1.0',\n"
@@ -881,7 +881,7 @@ public class GenericTableTest {
         + "        {\n"
         + "          name: 'DEPTS',\n"
         + "          type: 'custom',\n"
-        + "          factory: '" + GenericStreamTableFactory.class.getName()
+        + "          factory: '" + SortedStreamTableFactory.class.getName()
         + "',\n"
         + "          stream: {\n"
         + "            stream: true\n"
@@ -1060,4 +1060,4 @@ public class GenericTableTest {
   }
 }
 
-// End GenericTableTest.java
+// End SortedTableTest.java

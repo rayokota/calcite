@@ -26,21 +26,21 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Factory that creates a {@link GenericTableSchema}.
+ * Factory that creates a {@link SortedTableSchema}.
  *
  * <p>Allows a custom schema to be included in a <code><i>model</i>.json</code>
  * file.
  */
 @SuppressWarnings("UnusedDeclaration")
-public class GenericTableSchemaFactory implements SchemaFactory {
+public class SortedTableSchemaFactory implements SchemaFactory {
   /** Name of the column that is implicitly created in a CSV stream table
    * to hold the data arrival time. */
   static final String ROWTIME_COLUMN_NAME = "ROWTIME";
 
   /** Public singleton, per factory contract. */
-  public static final GenericTableSchemaFactory INSTANCE = new GenericTableSchemaFactory();
+  public static final SortedTableSchemaFactory INSTANCE = new SortedTableSchemaFactory();
 
-  private GenericTableSchemaFactory() {
+  private SortedTableSchemaFactory() {
   }
 
   public Schema create(SchemaPlus parentSchema, String name,
@@ -53,13 +53,13 @@ public class GenericTableSchemaFactory implements SchemaFactory {
       directoryFile = new File(base, directory);
     }
     String flavorName = (String) operand.get("flavor");
-    GenericTable.Flavor flavor;
+    SortedTable.Flavor flavor;
     if (flavorName == null) {
-      flavor = GenericTable.Flavor.SCANNABLE;
+      flavor = SortedTable.Flavor.SCANNABLE;
     } else {
-      flavor = GenericTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
+      flavor = SortedTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     }
-    return new GenericTableSchema(directoryFile, flavor);
+    return new SortedTableSchema(directoryFile, flavor);
   }
 }
 

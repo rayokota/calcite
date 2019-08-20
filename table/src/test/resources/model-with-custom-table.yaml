@@ -21,7 +21,7 @@ schemas:
   tables:
   - name: EMPS
     type: custom
-    factory: org.apache.calcite.adapter.table.GenericTableFactory
+    factory: org.apache.calcite.adapter.table.SortedTableFactory
     operand:
       file: sales/EMPS.csv.gz
       flavor: scannable

@@ -19,6 +19,6 @@ defaultSchema: BUG
 schemas:
 - name: BUG
   type: custom
-  factory: org.apache.calcite.adapter.table.GenericTableSchemaFactory
+  factory: org.apache.calcite.adapter.table.SortedTableSchemaFactory
   operand:
     directory: bug

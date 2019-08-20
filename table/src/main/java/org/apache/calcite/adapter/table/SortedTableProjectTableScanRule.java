@@ -27,37 +27,37 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import java.util.List;
 
 /**
- * Planner rule that projects from a {@link GenericTableScan} scan just the columns
+ * Planner rule that projects from a {@link SortedTableScan} scan just the columns
  * needed to satisfy a projection. If the projection's expressions are trivial,
  * the projection is removed.
  */
-public class GenericTableProjectTableScanRule extends RelOptRule {
-  public static final GenericTableProjectTableScanRule INSTANCE =
-      new GenericTableProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
+public class SortedTableProjectTableScanRule extends RelOptRule {
+  public static final SortedTableProjectTableScanRule INSTANCE =
+      new SortedTableProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates a CsvProjectTableScanRule.
    *
    * @param relBuilderFactory Builder for relational expressions
    */
-  public GenericTableProjectTableScanRule(RelBuilderFactory relBuilderFactory) {
+  public SortedTableProjectTableScanRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalProject.class,
-            operand(GenericTableScan.class, none())),
+            operand(SortedTableScan.class, none())),
         relBuilderFactory,
-        "GenericTableProjectTableScanRule");
+        "SortedTableProjectTableScanRule");
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalProject project = call.rel(0);
-    final GenericTableScan scan = call.rel(1);
+    final SortedTableScan scan = call.rel(1);
     int[] fields = getProjectFields(project.getProjects());
     if (fields == null) {
       // Project contains expressions more complex than just field references.
       return;
     }
     call.transformTo(
-        new GenericTableScan(
+        new SortedTableScan(
             scan.getCluster(),
             scan.getTable(),
             scan.csvTable,

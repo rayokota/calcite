@@ -38,15 +38,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Table based on a CSV file.
  */
-public class GenericTranslatableTable extends GenericTable
+public class SortedTranslatableTable extends SortedTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  public GenericTranslatableTable(Source source, RelProtoDataType protoRowType) {
+  public SortedTranslatableTable(Source source, RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 
   public String toString() {
-    return "GenericTranslatableTable";
+    return "SortedTranslatableTable";
   }
 
   /** Returns an enumerable over a given projection of the fields.
@@ -57,7 +57,7 @@ public class GenericTranslatableTable extends GenericTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new GenericTableEnumerator<>(source, cancelFlag, fieldTypes, fields);
+        return new SortedTableEnumerator<>(source, cancelFlag, fieldTypes, fields);
       }
     };
   }
@@ -81,8 +81,8 @@ public class GenericTranslatableTable extends GenericTable
       RelOptTable relOptTable) {
     // Request all fields.
     final int fieldCount = relOptTable.getRowType().getFieldCount();
-    final int[] fields = GenericTableEnumerator.identityList(fieldCount);
-    return new GenericTableScan(context.getCluster(), relOptTable, this, fields);
+    final int[] fields = SortedTableEnumerator.identityList(fieldCount);
+    return new SortedTableScan(context.getCluster(), relOptTable, this, fields);
   }
 }
 

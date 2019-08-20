@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @param <E> Row type
  */
-class GenericTableEnumerator<E> implements Enumerator<E> {
+class SortedTableEnumerator<E> implements Enumerator<E> {
   private final CSVReader reader;
   private final String[] filterValues;
   private final AtomicBoolean cancelFlag;
@@ -60,26 +60,26 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
         FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
-  GenericTableEnumerator(Source source, AtomicBoolean cancelFlag,
-                         List<GenericTableColumnType> fieldTypes) {
+  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
+                        List<SortedTableColumnType> fieldTypes) {
     this(source, cancelFlag, fieldTypes, identityList(fieldTypes.size()));
   }
 
-  GenericTableEnumerator(Source source, AtomicBoolean cancelFlag,
-                         List<GenericTableColumnType> fieldTypes, int[] fields) {
+  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
+                        List<SortedTableColumnType> fieldTypes, int[] fields) {
     //noinspection unchecked
     this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields));
   }
 
-  GenericTableEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
-                         String[] filterValues, RowConverter<E> rowConverter) {
+  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
+                        String[] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
     this.filterValues = filterValues;
     try {
       if (stream) {
-        this.reader = new GenericTableStreamReader(source);
+        this.reader = new SortedTableStreamReader(source);
       } else {
         this.reader = openCsv(source);
       }
@@ -89,7 +89,7 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  private static RowConverter<?> converter(List<GenericTableColumnType> fieldTypes,
+  private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes,
       int[] fields) {
     if (fields.length == 1) {
       final int field = fields[0];
@@ -102,18 +102,18 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
   /** Deduces the names and types of a table's columns by reading the first line
    * of a CSV file. */
   static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
-      List<GenericTableColumnType> fieldTypes) {
+      List<SortedTableColumnType> fieldTypes) {
     return deduceRowType(typeFactory, source, fieldTypes, false);
   }
 
   /** Deduces the names and types of a table's columns by reading the first line
   * of a CSV file. */
   static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
-                                   List<GenericTableColumnType> fieldTypes, Boolean stream) {
+                                   List<SortedTableColumnType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     if (stream) {
-      names.add(GenericTableSchemaFactory.ROWTIME_COLUMN_NAME);
+      names.add(SortedTableSchemaFactory.ROWTIME_COLUMN_NAME);
       types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
     }
     try (CSVReader reader = openCsv(source)) {
@@ -123,12 +123,12 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
       }
       for (String string : strings) {
         final String name;
-        final GenericTableColumnType fieldType;
+        final SortedTableColumnType fieldType;
         final int colon = string.indexOf(':');
         if (colon >= 0) {
           name = string.substring(0, colon);
           String typeString = string.substring(colon + 1);
-          fieldType = GenericTableColumnType.of(typeString);
+          fieldType = SortedTableColumnType.of(typeString);
           if (fieldType == null) {
             System.out.println("WARNING: Found unknown type: "
                 + typeString + " in file: " + source.path()
@@ -179,9 +179,9 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
         }
         final String[] strings = reader.readNext();
         if (strings == null) {
-          if (reader instanceof GenericTableStreamReader) {
+          if (reader instanceof SortedTableStreamReader) {
             try {
-              Thread.sleep(GenericTableStreamReader.DEFAULT_MONITOR_DELAY);
+              Thread.sleep(SortedTableStreamReader.DEFAULT_MONITOR_DELAY);
             } catch (InterruptedException e) {
               throw new RuntimeException(e);
             }
@@ -236,7 +236,7 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
   abstract static class RowConverter<E> {
     abstract E convertRow(String[] rows);
 
-    protected Object convert(GenericTableColumnType fieldType, String string) {
+    protected Object convert(SortedTableColumnType fieldType, String string) {
       if (fieldType == null) {
         return string;
       }
@@ -315,19 +315,19 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
 
   /** Array row converter. */
   static class ArrayRowConverter extends RowConverter<Object[]> {
-    private final GenericTableColumnType[] fieldTypes;
+    private final SortedTableColumnType[] fieldTypes;
     private final int[] fields;
     // whether the row to convert is from a stream
     private final boolean stream;
 
-    ArrayRowConverter(List<GenericTableColumnType> fieldTypes, int[] fields) {
-      this.fieldTypes = fieldTypes.toArray(new GenericTableColumnType[0]);
+    ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields) {
+      this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
       this.fields = fields;
       this.stream = false;
     }
 
-    ArrayRowConverter(List<GenericTableColumnType> fieldTypes, int[] fields, boolean stream) {
-      this.fieldTypes = fieldTypes.toArray(new GenericTableColumnType[0]);
+    ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields, boolean stream) {
+      this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
       this.fields = fields;
       this.stream = stream;
     }
@@ -362,10 +362,10 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
 
   /** Single column row converter. */
   private static class SingleColumnRowConverter extends RowConverter {
-    private final GenericTableColumnType fieldType;
+    private final SortedTableColumnType fieldType;
     private final int fieldIndex;
 
-    private SingleColumnRowConverter(GenericTableColumnType fieldType, int fieldIndex) {
+    private SingleColumnRowConverter(SortedTableColumnType fieldType, int fieldIndex) {
       this.fieldType = fieldType;
       this.fieldIndex = fieldIndex;
     }

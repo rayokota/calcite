@@ -29,19 +29,19 @@ import java.io.File;
 import java.util.Map;
 
 /**
- * Factory that creates a {@link GenericTranslatableTable}.
+ * Factory that creates a {@link SortedTranslatableTable}.
  *
  * <p>Allows a CSV table to be included in a model.json file, even in a
- * schema that is not based upon {@link GenericTableSchema}.</p>
+ * schema that is not based upon {@link SortedTableSchema}.</p>
  */
 @SuppressWarnings("UnusedDeclaration")
-public class GenericStreamTableFactory implements TableFactory<GenericTable> {
+public class SortedStreamTableFactory implements TableFactory<SortedTable> {
   // public constructor, per factory contract
-  public GenericStreamTableFactory() {
+  public SortedStreamTableFactory() {
   }
 
-  public GenericTable create(SchemaPlus schema, String name,
-                             Map<String, Object> operand, RelDataType rowType) {
+  public SortedTable create(SchemaPlus schema, String name,
+                            Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);
     final File base =
@@ -52,7 +52,7 @@ public class GenericStreamTableFactory implements TableFactory<GenericTable> {
     final Source source = Sources.of(file);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new GenericStreamScannableTable(source, protoRowType);
+    return new SortedStreamScannableTable(source, protoRowType);
   }
 }
 

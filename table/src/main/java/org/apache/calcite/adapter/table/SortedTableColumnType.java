@@ -30,7 +30,7 @@ import java.util.Map;
  * of type {@link #STRING}. But specifying the field type in the header row
  * makes it easier to write SQL.</p>
  */
-public enum GenericTableColumnType {
+public enum SortedTableColumnType {
   STRING(String.class, "string"),
   BOOLEAN(Primitive.BOOLEAN),
   BYTE(Primitive.BYTE),
@@ -47,19 +47,19 @@ public enum GenericTableColumnType {
   private final Class clazz;
   private final String simpleName;
 
-  private static final Map<String, GenericTableColumnType> MAP = new HashMap<>();
+  private static final Map<String, SortedTableColumnType> MAP = new HashMap<>();
 
   static {
-    for (GenericTableColumnType value : values()) {
+    for (SortedTableColumnType value : values()) {
       MAP.put(value.simpleName, value);
     }
   }
 
-  GenericTableColumnType(Primitive primitive) {
+  SortedTableColumnType(Primitive primitive) {
     this(primitive.boxClass, primitive.primitiveName);
   }
 
-  GenericTableColumnType(Class clazz, String simpleName) {
+  SortedTableColumnType(Class clazz, String simpleName) {
     this.clazz = clazz;
     this.simpleName = simpleName;
   }
@@ -70,7 +70,7 @@ public enum GenericTableColumnType {
     return typeFactory.createTypeWithNullability(sqlType, true);
   }
 
-  public static GenericTableColumnType of(String typeString) {
+  public static SortedTableColumnType of(String typeString) {
     return MAP.get(typeString);
   }
 }

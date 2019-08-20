@@ -44,12 +44,12 @@ import java.util.List;
  *
  * <p>Like any table scan, it serves as a leaf node of a query tree.</p>
  */
-public class GenericTableScan extends TableScan implements EnumerableRel {
-  final GenericTranslatableTable csvTable;
+public class SortedTableScan extends TableScan implements EnumerableRel {
+  final SortedTranslatableTable csvTable;
   final int[] fields;
 
-  protected GenericTableScan(RelOptCluster cluster, RelOptTable table,
-                             GenericTranslatableTable csvTable, int[] fields) {
+  protected SortedTableScan(RelOptCluster cluster, RelOptTable table,
+                            SortedTranslatableTable csvTable, int[] fields) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), table);
     this.csvTable = csvTable;
     this.fields = fields;
@@ -59,7 +59,7 @@ public class GenericTableScan extends TableScan implements EnumerableRel {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new GenericTableScan(getCluster(), table, csvTable, fields);
+    return new SortedTableScan(getCluster(), table, csvTable, fields);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -78,7 +78,7 @@ public class GenericTableScan extends TableScan implements EnumerableRel {
   }
 
   @Override public void register(RelOptPlanner planner) {
-    planner.addRule(GenericTableProjectTableScanRule.INSTANCE);
+    planner.addRule(SortedTableProjectTableScanRule.INSTANCE);
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -105,7 +105,7 @@ public class GenericTableScan extends TableScan implements EnumerableRel {
     return implementor.result(
         physType,
         Blocks.toBlock(
-            Expressions.call(table.getExpression(GenericTranslatableTable.class),
+            Expressions.call(table.getExpression(SortedTranslatableTable.class),
                 "project", implementor.getRootExpression(),
                 Expressions.constant(fields))));
   }
