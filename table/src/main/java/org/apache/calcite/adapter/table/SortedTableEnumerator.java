@@ -16,25 +16,9 @@
  */
 package org.apache.calcite.adapter.table;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
 
-import org.apache.commons.lang3.time.FastDateFormat;
-
-import au.com.bytecode.opencsv.CSVReader;
-
-import java.io.IOException;
-import java.io.Reader;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Enumerator that reads from a CSV file.
@@ -42,110 +26,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <E> Row type
  */
 class SortedTableEnumerator<E> implements Enumerator<E> {
-  private final CSVReader reader;
+  private final Iterator<Object[]> rows;
   private final String[] filterValues;
   private final AtomicBoolean cancelFlag;
-  private final RowConverter<E> rowConverter;
+  private final int[] fields;
   private E current;
 
-  private static final FastDateFormat TIME_FORMAT_DATE;
-  private static final FastDateFormat TIME_FORMAT_TIME;
-  private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
-
-  static {
-    final TimeZone gmt = TimeZone.getTimeZone("GMT");
-    TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
-    TIME_FORMAT_TIME = FastDateFormat.getInstance("HH:mm:ss", gmt);
-    TIME_FORMAT_TIMESTAMP =
-        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
-  }
-
-  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
-                        List<SortedTableColumnType> fieldTypes) {
-    this(source, cancelFlag, fieldTypes, identityList(fieldTypes.size()));
-  }
-
-  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
-                        List<SortedTableColumnType> fieldTypes, int[] fields) {
-    this(source, cancelFlag, null,
-        (RowConverter<E>) converter(fieldTypes, fields));
-  }
-
-  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
-                        String[] filterValues, RowConverter<E> rowConverter) {
+  SortedTableEnumerator(Iterator<Object[]> rows, AtomicBoolean cancelFlag,
+                        String[] filterValues, int[] fields) {
+    this.rows = rows;
     this.cancelFlag = cancelFlag;
-    this.rowConverter = rowConverter;
     this.filterValues = filterValues;
-    try {
-      this.reader = openCsv(source);
-      this.reader.readNext(); // skip header row
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes,
-      int[] fields) {
-    if (fields.length == 1) {
-      final int field = fields[0];
-      return new SingleColumnRowConverter(fieldTypes.get(field), field);
-    } else {
-      return new ArrayRowConverter(fieldTypes, fields);
-    }
-  }
-
-  static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
-    final List<String> names = new ArrayList<>();
-    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
-    if (strings == null) {
-      strings = new String[]{"EmptyFileHasNoColumns:boolean"};
-    }
-    for (String string : strings) {
-      final String name;
-      final SortedTableColumnType fieldType;
-      final int colon = string.indexOf(':');
-      if (colon >= 0) {
-        name = string.substring(0, colon);
-        String typeString = string.substring(colon + 1);
-        fieldType = SortedTableColumnType.of(typeString);
-        if (fieldType == null) {
-          System.out.println("WARNING: Found unknown type: "
-                  + typeString + " in file: "
-                  + " for column: " + name
-                  + ". Will assume the type of column is string");
-        }
-      } else {
-        name = string;
-        fieldType = null;
-      }
-      names.add(name);
-      fieldTypes.add(fieldType);
-    }
-    if (names.isEmpty()) {
-      names.add("line");
-      fieldTypes.add(null);
-    }
-    return Pair.of(names, fieldTypes);
-  }
-
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, List<String> names,
-                                   List<SortedTableColumnType> fieldTypes) {
-    List<RelDataType> types = new ArrayList<>();
-    for (SortedTableColumnType fieldType : fieldTypes) {
-      final RelDataType type;
-      if (fieldType == null) {
-        type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-      } else {
-        type = fieldType.toType(typeFactory);
-      }
-      types.add(type);
-    }
-    return typeFactory.createStructType(Pair.zip(names, types));
-  }
-
-  public static CSVReader openCsv(Source source) throws IOException {
-    final Reader fileReader = source.reader();
-    return new CSVReader(fileReader);
+    this.fields = fields;
   }
 
   public E current() {
@@ -153,34 +45,42 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
   }
 
   public boolean moveNext() {
-    try {
     outer:
       for (;;) {
         if (cancelFlag.get()) {
           return false;
         }
-        final String[] strings = reader.readNext();
-        if (strings == null) {
+        final Object[] row = rows.hasNext() ? rows.next() : null;
+        if (row == null) {
           current = null;
-          reader.close();
           return false;
         }
         if (filterValues != null) {
-          for (int i = 0; i < strings.length; i++) {
+          for (int i = 0; i < row.length; i++) {
             String filterValue = filterValues[i];
             if (filterValue != null) {
-              if (!filterValue.equals(strings[i])) {
+              if (!filterValue.equals(row[i].toString())) {
                 continue outer;
               }
             }
           }
         }
-        current = rowConverter.convertRow(strings);
+        current = project(row, fields);
         return true;
       }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+  }
+
+  @SuppressWarnings("unchecked")
+  private E project(Object[] row, int[] fields) {
+    if (fields.length == 1) {
+      return (E) row[fields[0]];
     }
+    final Object[] objects = new Object[fields.length];
+    for (int i = 0; i < fields.length; i++) {
+      int field = fields[i];
+      objects[i] = row[field];
+    }
+    return (E) objects;
   }
 
   public void reset() {
@@ -188,139 +88,7 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
   }
 
   public void close() {
-    try {
-      reader.close();
-    } catch (IOException e) {
-      throw new RuntimeException("Error closing reader", e);
-    }
-  }
-
-  /** Returns an array of integers {0, ..., n - 1}. */
-  static int[] identityList(int n) {
-    int[] integers = new int[n];
-    for (int i = 0; i < n; i++) {
-      integers[i] = i;
-    }
-    return integers;
-  }
-
-  /** Row converter.
-   *
-   * @param <E> element type */
-  abstract static class RowConverter<E> {
-    abstract E convertRow(String[] rows);
-
-    protected Object convert(SortedTableColumnType fieldType, String string) {
-      if (fieldType == null) {
-        return string;
-      }
-      switch (fieldType) {
-      case BOOLEAN:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Boolean.parseBoolean(string);
-      case BYTE:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Byte.parseByte(string);
-      case SHORT:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Short.parseShort(string);
-      case INT:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Integer.parseInt(string);
-      case LONG:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Long.parseLong(string);
-      case FLOAT:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Float.parseFloat(string);
-      case DOUBLE:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Double.parseDouble(string);
-      case DATE:
-        if (string.length() == 0) {
-          return null;
-        }
-        try {
-          Date date = TIME_FORMAT_DATE.parse(string);
-          return (int) (date.getTime() / DateTimeUtils.MILLIS_PER_DAY);
-        } catch (ParseException e) {
-          return null;
-        }
-      case TIME:
-        if (string.length() == 0) {
-          return null;
-        }
-        try {
-          Date date = TIME_FORMAT_TIME.parse(string);
-          return (int) date.getTime();
-        } catch (ParseException e) {
-          return null;
-        }
-      case TIMESTAMP:
-        if (string.length() == 0) {
-          return null;
-        }
-        try {
-          Date date = TIME_FORMAT_TIMESTAMP.parse(string);
-          return date.getTime();
-        } catch (ParseException e) {
-          return null;
-        }
-      case STRING:
-      default:
-        return string;
-      }
-    }
-  }
-
-  /** Array row converter. */
-  static class ArrayRowConverter extends RowConverter<Object[]> {
-    private final SortedTableColumnType[] fieldTypes;
-    private final int[] fields;
-
-    ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields) {
-      this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
-      this.fields = fields;
-    }
-
-    public Object[] convertRow(String[] strings) {
-      final Object[] objects = new Object[fields.length];
-      for (int i = 0; i < fields.length; i++) {
-        int field = fields[i];
-        objects[i] = convert(fieldTypes[field], strings[field]);
-      }
-      return objects;
-    }
-  }
-
-  /** Single column row converter. */
-  private static class SingleColumnRowConverter extends RowConverter {
-    private final SortedTableColumnType fieldType;
-    private final int fieldIndex;
-
-    private SingleColumnRowConverter(SortedTableColumnType fieldType, int fieldIndex) {
-      this.fieldType = fieldType;
-      this.fieldIndex = fieldIndex;
-    }
-
-    public Object convertRow(String[] strings) {
-      return convert(fieldType, strings[fieldIndex]);
-    }
   }
 }
 
-// End CsvEnumerator.java
+// End SortedTableEnumerator.java

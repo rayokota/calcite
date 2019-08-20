@@ -33,6 +33,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
 
 import java.lang.reflect.Type;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -57,7 +58,7 @@ public class SortedTranslatableTable extends SortedTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new SortedTableEnumerator<>(source, cancelFlag, fieldTypes, fields);
+        return new SortedTableEnumerator<>(rows.iterator(), cancelFlag, null, fields);
       }
     };
   }
@@ -81,7 +82,7 @@ public class SortedTranslatableTable extends SortedTable
       RelOptTable relOptTable) {
     // Request all fields.
     final int fieldCount = relOptTable.getRowType().getFieldCount();
-    final int[] fields = SortedTableEnumerator.identityList(fieldCount);
+    final int[] fields = identityList(fieldCount);
     return new SortedTableScan(context.getCluster(), relOptTable, this, fields);
   }
 }

@@ -44,12 +44,11 @@ public class SortedScannableTable extends SortedTable
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
-    final int[] fields = SortedTableEnumerator.identityList(fieldTypes.size());
+    final int[] fields = identityList(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new SortedTableEnumerator<>(source, cancelFlag, null,
-            new SortedTableEnumerator.ArrayRowConverter(fieldTypes, fields));
+        return new SortedTableEnumerator<>(rows.iterator(), cancelFlag, null, fields);
       }
     };
   }

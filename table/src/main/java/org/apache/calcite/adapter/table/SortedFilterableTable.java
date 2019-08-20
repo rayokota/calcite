@@ -52,12 +52,11 @@ public class SortedFilterableTable extends SortedTable
   public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
-    final int[] fields = SortedTableEnumerator.identityList(fieldTypes.size());
+    final int[] fields = identityList(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new SortedTableEnumerator<>(source, cancelFlag, filterValues,
-            new SortedTableEnumerator.ArrayRowConverter(fieldTypes, fields));
+        return new SortedTableEnumerator<>(rows.iterator(), cancelFlag, filterValues, fields);
       }
     };
   }
