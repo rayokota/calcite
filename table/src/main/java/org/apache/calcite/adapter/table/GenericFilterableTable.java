@@ -46,7 +46,7 @@ public class GenericFilterableTable extends GenericTable
   }
 
   public String toString() {
-    return "CsvFilterableTable";
+    return "GenericFilterableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {

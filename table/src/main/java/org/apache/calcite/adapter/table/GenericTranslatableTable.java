@@ -46,7 +46,7 @@ public class GenericTranslatableTable extends GenericTable
   }
 
   public String toString() {
-    return "CsvTranslatableTable";
+    return "GenericTranslatableTable";
   }
 
   /** Returns an enumerable over a given projection of the fields.

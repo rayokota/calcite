@@ -45,7 +45,7 @@ public class GenericTableProjectTableScanRule extends RelOptRule {
         operand(LogicalProject.class,
             operand(GenericTableScan.class, none())),
         relBuilderFactory,
-        "CsvProjectTableScanRule");
+        "GenericTableProjectTableScanRule");
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

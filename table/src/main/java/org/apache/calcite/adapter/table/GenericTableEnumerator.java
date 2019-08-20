@@ -217,7 +217,7 @@ class GenericTableEnumerator<E> implements Enumerator<E> {
     try {
       reader.close();
     } catch (IOException e) {
-      throw new RuntimeException("Error closing CSV reader", e);
+      throw new RuntimeException("Error closing reader", e);
     }
   }
 

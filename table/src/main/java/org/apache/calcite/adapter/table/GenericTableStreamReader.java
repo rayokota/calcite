@@ -34,7 +34,7 @@ import java.util.Queue;
 /**
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
-class GenericTableStreamReader extends CSVReader implements Closeable {
+public class GenericTableStreamReader extends CSVReader implements Closeable {
   protected CSVParser parser;
   protected int skipLines;
   protected Tailer tailer;

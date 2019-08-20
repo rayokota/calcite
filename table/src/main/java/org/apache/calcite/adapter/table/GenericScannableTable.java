@@ -40,7 +40,7 @@ public class GenericScannableTable extends GenericTable
   }
 
   public String toString() {
-    return "CsvScannableTable";
+    return "GenericScannableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root) {

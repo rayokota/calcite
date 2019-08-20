@@ -58,7 +58,7 @@ public class GenericStreamScannableTable extends GenericScannableTable
   }
 
   public String toString() {
-    return "CsvStreamScannableTable";
+    return "GenericStreamScannableTable";
   }
 
   public Enumerable<Object[]> scan(DataContext root) {
