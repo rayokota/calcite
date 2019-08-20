@@ -94,53 +94,51 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  /** Deduces the names and types of a table's columns by reading the first line
-   * of a CSV file. */
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
-      List<SortedTableColumnType> fieldTypes) {
-    final List<RelDataType> types = new ArrayList<>();
+  static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
     final List<String> names = new ArrayList<>();
-    try (CSVReader reader = openCsv(source)) {
-      String[] strings = reader.readNext();
-      if (strings == null) {
-        strings = new String[]{"EmptyFileHasNoColumns:boolean"};
-      }
-      for (String string : strings) {
-        final String name;
-        final SortedTableColumnType fieldType;
-        final int colon = string.indexOf(':');
-        if (colon >= 0) {
-          name = string.substring(0, colon);
-          String typeString = string.substring(colon + 1);
-          fieldType = SortedTableColumnType.of(typeString);
-          if (fieldType == null) {
-            System.out.println("WARNING: Found unknown type: "
-                + typeString + " in file: " + source.path()
-                + " for column: " + name
-                + ". Will assume the type of column is string");
-          }
-        } else {
-          name = string;
-          fieldType = null;
-        }
-        final RelDataType type;
+    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
+    if (strings == null) {
+      strings = new String[]{"EmptyFileHasNoColumns:boolean"};
+    }
+    for (String string : strings) {
+      final String name;
+      final SortedTableColumnType fieldType;
+      final int colon = string.indexOf(':');
+      if (colon >= 0) {
+        name = string.substring(0, colon);
+        String typeString = string.substring(colon + 1);
+        fieldType = SortedTableColumnType.of(typeString);
         if (fieldType == null) {
-          type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-        } else {
-          type = fieldType.toType(typeFactory);
+          System.out.println("WARNING: Found unknown type: "
+                  + typeString + " in file: "
+                  + " for column: " + name
+                  + ". Will assume the type of column is string");
         }
-        names.add(name);
-        types.add(type);
-        if (fieldTypes != null) {
-          fieldTypes.add(fieldType);
-        }
+      } else {
+        name = string;
+        fieldType = null;
       }
-    } catch (IOException e) {
-      // ignore
+      names.add(name);
+      fieldTypes.add(fieldType);
     }
     if (names.isEmpty()) {
       names.add("line");
-      types.add(typeFactory.createSqlType(SqlTypeName.VARCHAR));
+      fieldTypes.add(null);
+    }
+    return Pair.of(names, fieldTypes);
+  }
+
+  static RelDataType deduceRowType(JavaTypeFactory typeFactory, List<String> names,
+                                   List<SortedTableColumnType> fieldTypes) {
+    List<RelDataType> types = new ArrayList<>();
+    for (SortedTableColumnType fieldType : fieldTypes) {
+      final RelDataType type;
+      if (fieldType == null) {
+        type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      } else {
+        type = fieldType.toType(typeFactory);
+      }
+      types.add(type);
     }
     return typeFactory.createStructType(Pair.zip(names, types));
   }

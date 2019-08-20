@@ -16,13 +16,16 @@
  */
 package org.apache.calcite.adapter.table;
 
+import au.com.bytecode.opencsv.CSVReader;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,26 +35,29 @@ import java.util.List;
 public abstract class SortedTable extends AbstractTable {
   protected final Source source;
   protected final RelProtoDataType protoRowType;
+  protected List<String> names;
   protected List<SortedTableColumnType> fieldTypes;
 
   /** Creates a CsvTable. */
   SortedTable(Source source, RelProtoDataType protoRowType) {
-    this.source = source;
-    this.protoRowType = protoRowType;
+    try {
+      this.source = source;
+      this.protoRowType = protoRowType;
+      CSVReader reader = SortedTableEnumerator.openCsv(source);
+      String[] strings = reader.readNext(); // skip header row
+      Pair<List<String>, List<SortedTableColumnType>> types = SortedTableEnumerator.getFieldTypes(strings);
+      this.names = types.left;
+      this.fieldTypes = types.right;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }
-    if (fieldTypes == null) {
-      fieldTypes = new ArrayList<>();
-      return SortedTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-          fieldTypes);
-    } else {
-      return SortedTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-          null);
-    }
+    return SortedTableEnumerator.deduceRowType((JavaTypeFactory) typeFactory, names, fieldTypes);
   }
 
   /** Various degrees of table "intelligence". */
