@@ -67,22 +67,17 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
 
   SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
                         List<SortedTableColumnType> fieldTypes, int[] fields) {
-    //noinspection unchecked
-    this(source, cancelFlag, false, null,
+    this(source, cancelFlag, null,
         (RowConverter<E>) converter(fieldTypes, fields));
   }
 
-  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
+  SortedTableEnumerator(Source source, AtomicBoolean cancelFlag,
                         String[] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
     this.filterValues = filterValues;
     try {
-      if (stream) {
-        this.reader = new SortedTableStreamReader(source);
-      } else {
-        this.reader = openCsv(source);
-      }
+      this.reader = openCsv(source);
       this.reader.readNext(); // skip header row
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -103,19 +98,8 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
    * of a CSV file. */
   static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
       List<SortedTableColumnType> fieldTypes) {
-    return deduceRowType(typeFactory, source, fieldTypes, false);
-  }
-
-  /** Deduces the names and types of a table's columns by reading the first line
-  * of a CSV file. */
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
-                                   List<SortedTableColumnType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
-    if (stream) {
-      names.add(SortedTableSchemaFactory.ROWTIME_COLUMN_NAME);
-      types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
-    }
     try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext();
       if (strings == null) {
@@ -179,14 +163,6 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
         }
         final String[] strings = reader.readNext();
         if (strings == null) {
-          if (reader instanceof SortedTableStreamReader) {
-            try {
-              Thread.sleep(SortedTableStreamReader.DEFAULT_MONITOR_DELAY);
-            } catch (InterruptedException e) {
-              throw new RuntimeException(e);
-            }
-            continue;
-          }
           current = null;
           reader.close();
           return false;
@@ -317,44 +293,17 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
   static class ArrayRowConverter extends RowConverter<Object[]> {
     private final SortedTableColumnType[] fieldTypes;
     private final int[] fields;
-    // whether the row to convert is from a stream
-    private final boolean stream;
 
     ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields) {
       this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
       this.fields = fields;
-      this.stream = false;
-    }
-
-    ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields, boolean stream) {
-      this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
-      this.fields = fields;
-      this.stream = stream;
     }
 
     public Object[] convertRow(String[] strings) {
-      if (stream) {
-        return convertStreamRow(strings);
-      } else {
-        return convertNormalRow(strings);
-      }
-    }
-
-    public Object[] convertNormalRow(String[] strings) {
       final Object[] objects = new Object[fields.length];
       for (int i = 0; i < fields.length; i++) {
         int field = fields[i];
         objects[i] = convert(fieldTypes[field], strings[field]);
-      }
-      return objects;
-    }
-
-    public Object[] convertStreamRow(String[] strings) {
-      final Object[] objects = new Object[fields.length + 1];
-      objects[0] = System.currentTimeMillis();
-      for (int i = 0; i < fields.length; i++) {
-        int field = fields[i];
-        objects[i + 1] = convert(fieldTypes[field], strings[field]);
       }
       return objects;
     }

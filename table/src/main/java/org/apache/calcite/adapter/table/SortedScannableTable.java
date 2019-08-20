@@ -48,7 +48,7 @@ public class SortedScannableTable extends SortedTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new SortedTableEnumerator<>(source, cancelFlag, false, null,
+        return new SortedTableEnumerator<>(source, cancelFlag, null,
             new SortedTableEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };

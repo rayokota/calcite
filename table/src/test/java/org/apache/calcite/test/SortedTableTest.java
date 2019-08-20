@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.table.SortedTableSchemaFactory;
-import org.apache.calcite.adapter.table.SortedStreamTableFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -865,82 +864,6 @@ public class SortedTableTest {
           equalTo(Timestamp.class));
       assertThat(joinTimes.getTimestamp(1),
           is(Timestamp.valueOf("1996-08-03 00:01:02")));
-    }
-  }
-
-  @Ignore("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
-  @Test(timeout = 10000) public void testSortedTableStream() throws Exception {
-    final File file = File.createTempFile("stream", "csv");
-    final String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'STREAM',\n"
-        + "  schemas: [\n"
-        + "    {\n"
-        + "      name: 'SS',\n"
-        + "      tables: [\n"
-        + "        {\n"
-        + "          name: 'DEPTS',\n"
-        + "          type: 'custom',\n"
-        + "          factory: '" + SortedStreamTableFactory.class.getName()
-        + "',\n"
-        + "          stream: {\n"
-        + "            stream: true\n"
-        + "          },\n"
-        + "          operand: {\n"
-        + "            file: " + escapeString(file.getAbsolutePath()) + ",\n"
-        + "            flavor: \"scannable\"\n"
-        + "          }\n"
-        + "        }\n"
-        + "      ]\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}\n";
-    final String[] strings = {
-        "DEPTNO:int,NAME:string",
-        "10,\"Sales\"",
-        "20,\"Marketing\"",
-        "30,\"Engineering\""
-    };
-
-    try (Connection connection =
-             DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
-         PrintWriter pw = Util.printWriter(file);
-         Worker<Void> worker = new Worker<>()) {
-      final Thread thread = new Thread(worker);
-      thread.start();
-
-      // Add some rows so that the table can deduce its row type.
-      final Iterator<String> lines = Arrays.asList(strings).iterator();
-      pw.println(lines.next()); // header
-      pw.flush();
-      worker.queue.put(writeLine(pw, lines.next())); // first row
-      worker.queue.put(writeLine(pw, lines.next())); // second row
-      final CalciteConnection calciteConnection =
-          connection.unwrap(CalciteConnection.class);
-      final String sql = "select stream * from \"SS\".\"DEPTS\"";
-      final PreparedStatement statement =
-          calciteConnection.prepareStatement(sql);
-      final ResultSet resultSet = statement.executeQuery();
-      int count = 0;
-      try {
-        while (resultSet.next()) {
-          ++count;
-          if (lines.hasNext()) {
-            worker.queue.put(sleep(10));
-            worker.queue.put(writeLine(pw, lines.next()));
-          } else {
-            worker.queue.put(cancel(statement));
-          }
-        }
-        fail("expected exception, got end of data");
-      } catch (SQLException e) {
-        assertThat(e.getMessage(), is("Statement canceled"));
-      }
-      assertThat(count, anyOf(is(strings.length - 2), is(strings.length - 1)));
-      assertThat(worker.e, nullValue());
-      assertThat(worker.v, nullValue());
-    } finally {
-      Util.discard(file.delete());
     }
   }
 
