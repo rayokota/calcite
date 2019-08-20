@@ -73,13 +73,11 @@ public class SortedTableSchema extends AbstractSchema {
   }
 
   private Map<String, Table> createTableMap() {
-    // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
-    // ".json.gz".
+    // Look for files in the directory ending in ".csv", ".csv.gz"
     final Source baseSource = Sources.of(directoryFile);
     File[] files = directoryFile.listFiles((dir, name) -> {
       final String nameSansGz = trim(name, ".gz");
-      return nameSansGz.endsWith(".csv")
-          || nameSansGz.endsWith(".json");
+      return nameSansGz.endsWith(".csv");
     });
     if (files == null) {
       System.out.println("directory " + directoryFile + " not found");
