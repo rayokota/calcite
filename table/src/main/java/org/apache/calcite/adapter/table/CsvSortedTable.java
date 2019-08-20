@@ -16,23 +16,32 @@
  */
 package org.apache.calcite.adapter.table;
 
+import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Util;
+import org.apache.commons.io.input.Tailer;
+import org.apache.commons.io.input.TailerListener;
+import org.apache.commons.io.input.TailerListenerAdapter;
 import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.TimeZone;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -55,14 +64,19 @@ public class CsvSortedTable implements Collection<Object[]> {
             FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
+  /**
+   * The default file monitor delay.
+   */
+  public static final long DEFAULT_MONITOR_DELAY = 2000;
+
   /** Creates a CsvTable. */
   CsvSortedTable(Source source) {
-    try (CSVReader reader = openCsv(source)){
+    try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext(); // skip header row
       Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
       this.names = types.left;
       this.fieldTypes = types.right;
-      this.rows = new ArrayList<>();
+      this.rows = new CopyOnWriteArrayList<>();
       RowConverter rowConverter = converter(fieldTypes);
       String[] row = reader.readNext();
       while (row != null) {
@@ -111,7 +125,7 @@ public class CsvSortedTable implements Collection<Object[]> {
 
   @Override
   public boolean remove(Object o) {
-    return rows.remove(o);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -121,22 +135,22 @@ public class CsvSortedTable implements Collection<Object[]> {
 
   @Override
   public boolean addAll(Collection<? extends Object[]> c) {
-    return rows.addAll(c);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean removeAll(Collection<?> c) {
-    return rows.removeAll(c);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean removeIf(Predicate<? super Object[]> filter) {
-    return rows.removeIf(filter);
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean retainAll(Collection<?> c) {
-    return rows.retainAll(c);
+    throw new UnsupportedOperationException();
   }
 
   @Override

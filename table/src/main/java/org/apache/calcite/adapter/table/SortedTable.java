@@ -16,11 +16,28 @@
  */
 package org.apache.calcite.adapter.table;
 
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ModifiableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
@@ -32,7 +49,7 @@ import java.util.List;
 /**
  * Base class for table that reads CSV files.
  */
-public abstract class SortedTable extends AbstractTable {
+public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   protected final RelProtoDataType protoRowType;
   protected Collection<Object[]> rows;
   protected List<String> names;
@@ -40,11 +57,39 @@ public abstract class SortedTable extends AbstractTable {
 
   /** Creates a CsvTable. */
   SortedTable(Source source, RelProtoDataType protoRowType) {
+    super(Object[].class);
     this.protoRowType = protoRowType;
     CsvSortedTable csvTable = new CsvSortedTable(source);
     this.rows = csvTable;
     this.names = csvTable.names;
     this.fieldTypes = csvTable.fieldTypes;
+  }
+
+  @Override public TableModify toModificationRel(
+          RelOptCluster cluster,
+          RelOptTable table,
+          Prepare.CatalogReader catalogReader,
+          RelNode child,
+          TableModify.Operation operation,
+          List<String> updateColumnList,
+          List<RexNode> sourceExpressionList,
+          boolean flattened) {
+    return LogicalTableModify.create(table, catalogReader, child, operation,
+            updateColumnList, sourceExpressionList, flattened);
+  }
+
+  @Override public Collection getModifiableCollection() {
+    return rows;
+  }
+
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+                                                SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
+      public Enumerator<T> enumerator() {
+        //noinspection unchecked
+        return (Enumerator<T>) Linq4j.enumerator(rows);
+      }
+    };
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {

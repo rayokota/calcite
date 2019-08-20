@@ -30,7 +30,7 @@ limitations under the License.
   <description>An example Calcite provider that reads Sorted tables</description>
 
   <properties>
-    <top.dir>${project.basedir}/../..</top.dir>
+    <top.dir>${project.basedir}/..</top.dir>
     <build.timestamp>${maven.build.timestamp}</build.timestamp>
   </properties>
 

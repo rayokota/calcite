@@ -45,7 +45,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -53,13 +52,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 /**
  * Unit test of the Calcite adapter for CSV.
@@ -177,6 +173,51 @@ public class SortedTableTest {
     sql("model", "select * from EMPS").ok();
   }
 
+  @Test public void testInsertOne() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("model"));
+
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:", info)) {
+      String sql = "insert into EMPS (empno, name, deptno, gender, city,\n"
+              + "  empid, age, slacker, manager, joinedat)\n"
+              + "values(140, 'Bob', 140, 'F', 'Belmont',\n"
+              + "  140, 140, true, false, date '1970-01-01')";
+
+      Statement statement = connection.createStatement();
+      statement.executeUpdate(sql);
+      statement.close();
+
+      statement = connection.createStatement();
+      sql = "select * from EMPS";
+      ResultSet resultSet = statement.executeQuery(sql);
+      output(resultSet);
+      resultSet.close();
+      statement.close();
+    }
+  }
+
+  @Test public void testInsertAll() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("model"));
+
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:", info)) {
+      String sql = "insert into EMPS select * from EMPS";
+
+      Statement statement = connection.createStatement();
+      statement.executeUpdate(sql);
+      statement.close();
+
+      statement = connection.createStatement();
+      sql = "select * from EMPS";
+      ResultSet resultSet = statement.executeQuery(sql);
+      output(resultSet);
+      resultSet.close();
+      statement.close();
+    }
+  }
+
   @Test public void testSelectSingleProjectGz() throws SQLException {
     sql("smart", "select name from EMPS").ok();
   }
@@ -211,8 +252,9 @@ public class SortedTableTest {
   @Test public void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
     final String sql = "explain plan for select * from EMPS";
-    final String expected = "PLAN=EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[SALES, EMPS]])\n";
+    //final String expected = "PLAN=EnumerableInterpreter\n"
+    //    + "  BindableTableScan(table=[[SALES, EMPS]])\n";
+    final String expected = "PLAN=EnumerableTableScan(table=[[SALES, EMPS]])\n";
     sql("model", sql).returns(expected).ok();
   }
 
