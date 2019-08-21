@@ -33,7 +33,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
 
 import java.lang.reflect.Type;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**

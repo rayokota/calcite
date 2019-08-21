@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
@@ -36,8 +35,6 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Schemas;
-import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
@@ -45,7 +42,6 @@ import org.apache.calcite.util.Source;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -53,9 +49,9 @@ import java.util.List;
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   protected final RelProtoDataType protoRowType;
-  protected Collection<?> rows;
-  protected List<String> names;
-  protected List<SortedTableColumnType> fieldTypes;
+  protected final Collection<?> rows;
+  protected final List <String> names;
+  protected final List<SortedTableColumnType> fieldTypes;
 
   /** Creates a CsvTable. */
   SortedTable(Source source, RelProtoDataType protoRowType) {
@@ -89,9 +85,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
       public Enumerator<T> enumerator() {
         //noinspection unchecked
-        Enumerator<T> e = (Enumerator<T>) Linq4j.iterableEnumerator(
+        return (Enumerator<T>) Linq4j.iterableEnumerator(
                 () -> Iterators.transform(rows.iterator(), SortedTable::toRow));
-        return e;
       }
     };
   }

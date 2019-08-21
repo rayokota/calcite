@@ -20,7 +20,6 @@ import org.apache.calcite.adapter.table.SortedTableSchemaFactory;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
-import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
@@ -33,7 +32,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.sql.Connection;

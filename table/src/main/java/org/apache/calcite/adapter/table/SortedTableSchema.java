@@ -22,12 +22,9 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema

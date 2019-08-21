@@ -16,23 +16,16 @@
  */
 package org.apache.calcite.adapter.table;
 
-import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Util;
-import org.apache.commons.io.input.Tailer;
-import org.apache.commons.io.input.TailerListener;
-import org.apache.commons.io.input.TailerListenerAdapter;
 import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
@@ -41,7 +34,6 @@ import java.util.Spliterator;
 import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
