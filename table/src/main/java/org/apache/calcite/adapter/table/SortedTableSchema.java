@@ -24,7 +24,9 @@ import org.apache.calcite.util.Sources;
 import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
@@ -65,6 +67,11 @@ public class SortedTableSchema extends AbstractSchema {
         : null;
   }
 
+  public void add(String name, Table table) {
+    Map<String, Table> tableMap = getTableMap();
+    tableMap.put(name, table);
+  }
+
   @Override protected Map<String, Table> getTableMap() {
     if (tableMap == null) {
       tableMap = createTableMap();
@@ -84,21 +91,21 @@ public class SortedTableSchema extends AbstractSchema {
       files = new File[0];
     }
     // Build a map from table name to table; each file becomes a table.
-    final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
+    Map<String, Table> tableMap = new HashMap<>();
     for (File file : files) {
       Source source = Sources.of(file);
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
         final Table table = createTable(source);
-        builder.put(sourceSansCsv.relative(baseSource).path(), table);
+        tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
       }
     }
-    return builder.build();
+    return tableMap;
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */
-  private Table createTable(Source source) {
+  public Table createTable(Source source) {
     switch (flavor) {
     case TRANSLATABLE:
       return new SortedTranslatableTable(source, null);

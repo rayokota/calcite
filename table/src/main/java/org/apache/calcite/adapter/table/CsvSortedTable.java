@@ -71,12 +71,12 @@ public class CsvSortedTable implements Collection<Object[]> {
 
   /** Creates a CsvTable. */
   CsvSortedTable(Source source) {
+    this.rows = new CopyOnWriteArrayList<>();
     try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext(); // skip header row
       Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
       this.names = types.left;
       this.fieldTypes = types.right;
-      this.rows = new CopyOnWriteArrayList<>();
       RowConverter rowConverter = converter(fieldTypes);
       String[] row = reader.readNext();
       while (row != null) {

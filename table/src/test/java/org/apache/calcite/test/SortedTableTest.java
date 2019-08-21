@@ -17,8 +17,10 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.table.SortedTableSchemaFactory;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
@@ -173,6 +175,39 @@ public class SortedTableTest {
     sql("model", "select * from EMPS").ok();
   }
 
+  @Test public void testCreateTable() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("model"));
+
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:",
+      CalciteAssert.propBuilder()
+              .set(CalciteConnectionProperty.MODEL, jsonPath("model"))
+              .set(CalciteConnectionProperty.PARSER_FACTORY,
+                      "org.apache.calcite.sql.parser.parserextension"
+                              + ".ExtensionSqlParserImpl#FACTORY")
+              .build())) {
+
+      Statement s = connection.createStatement();
+      boolean b = s.execute("create table t (i int not null)");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into t values 1");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t values 3");
+      assertThat(x, is(1));
+
+      ResultSet resultSet = s.executeQuery("select * from t");
+      output(resultSet);
+      resultSet.close();
+
+      String sql = "select * from EMPS";
+      resultSet = s.executeQuery(sql);
+      output(resultSet);
+      resultSet.close();
+      s.close();
+    }
+  }
+
   @Test public void testInsertOne() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("model"));
@@ -186,9 +221,7 @@ public class SortedTableTest {
 
       Statement statement = connection.createStatement();
       statement.executeUpdate(sql);
-      statement.close();
 
-      statement = connection.createStatement();
       sql = "select * from EMPS";
       ResultSet resultSet = statement.executeQuery(sql);
       output(resultSet);
@@ -207,9 +240,7 @@ public class SortedTableTest {
 
       Statement statement = connection.createStatement();
       statement.executeUpdate(sql);
-      statement.close();
 
-      statement = connection.createStatement();
       sql = "select * from EMPS";
       ResultSet resultSet = statement.executeQuery(sql);
       output(resultSet);
