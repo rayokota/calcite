@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.table;
 
+import com.google.common.collect.Iterators;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -56,7 +57,8 @@ public class SortedFilterableTable extends SortedTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new SortedTableEnumerator<>(rows.iterator(), cancelFlag, filterValues, fields);
+        return new SortedTableEnumerator<>(Iterators.transform(rows.iterator(), SortedTable::toRow),
+                cancelFlag, filterValues, fields);
       }
     };
   }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.table;
 
+import com.google.common.collect.Iterators;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerator;
@@ -44,6 +45,7 @@ import org.apache.calcite.util.Source;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -51,7 +53,7 @@ import java.util.List;
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   protected final RelProtoDataType protoRowType;
-  protected Collection<Object[]> rows;
+  protected Collection<?> rows;
   protected List<String> names;
   protected List<SortedTableColumnType> fieldTypes;
 
@@ -59,7 +61,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   SortedTable(Source source, RelProtoDataType protoRowType) {
     super(Object[].class);
     this.protoRowType = protoRowType;
-    CsvSortedTable csvTable = new CsvSortedTable(source);
+    CsvSortedTable<?> csvTable = new CsvSortedTable<>(source);
     this.rows = csvTable;
     this.names = csvTable.names;
     this.fieldTypes = csvTable.fieldTypes;
@@ -87,9 +89,15 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
       public Enumerator<T> enumerator() {
         //noinspection unchecked
-        return (Enumerator<T>) Linq4j.enumerator(rows);
+        Enumerator<T> e = (Enumerator<T>) Linq4j.iterableEnumerator(
+                () -> Iterators.transform(rows.iterator(), SortedTable::toRow));
+        return e;
       }
     };
+  }
+
+  public static Object[] toRow(Object o) {
+    return o.getClass().isArray() ? (Object[]) o : new Object[]{o};
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {

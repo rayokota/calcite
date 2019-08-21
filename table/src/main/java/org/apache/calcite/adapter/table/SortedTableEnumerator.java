@@ -26,13 +26,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <E> Row type
  */
 class SortedTableEnumerator<E> implements Enumerator<E> {
-  private final Iterator<Object[]> rows;
+  private final Iterator<?> rows;
   private final String[] filterValues;
   private final AtomicBoolean cancelFlag;
   private final int[] fields;
   private E current;
 
-  SortedTableEnumerator(Iterator<Object[]> rows, AtomicBoolean cancelFlag,
+  SortedTableEnumerator(Iterator<?> rows, AtomicBoolean cancelFlag,
                         String[] filterValues, int[] fields) {
     this.rows = rows;
     this.cancelFlag = cancelFlag;
@@ -50,7 +50,7 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
         if (cancelFlag.get()) {
           return false;
         }
-        final Object[] row = rows.hasNext() ? rows.next() : null;
+        final Object[] row = rows.hasNext() ? SortedTable.toRow(rows.next()) : null;
         if (row == null) {
           current = null;
           return false;

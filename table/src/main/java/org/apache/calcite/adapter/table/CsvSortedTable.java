@@ -46,11 +46,13 @@ import java.util.stream.Stream;
 
 /**
  * Base class for table that reads CSV files.
+ *
+ * @param <E> Row type
  */
-public class CsvSortedTable implements Collection<Object[]> {
+public class CsvSortedTable<E> implements Collection<E> {
   protected List<String> names;
   protected List<SortedTableColumnType> fieldTypes;
-  protected Collection<Object[]> rows;
+  protected Collection<E> rows;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -64,27 +66,25 @@ public class CsvSortedTable implements Collection<Object[]> {
             FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
-  /**
-   * The default file monitor delay.
-   */
-  public static final long DEFAULT_MONITOR_DELAY = 2000;
-
   /** Creates a CsvTable. */
   CsvSortedTable(Source source) {
     this.rows = new CopyOnWriteArrayList<>();
-    try (CSVReader reader = openCsv(source)) {
-      String[] strings = reader.readNext(); // skip header row
-      Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
-      this.names = types.left;
-      this.fieldTypes = types.right;
-      RowConverter rowConverter = converter(fieldTypes);
-      String[] row = reader.readNext();
-      while (row != null) {
-        rows.add(rowConverter.convertRow(row));
-        row = reader.readNext();
+    if (source != null) {
+      try (CSVReader reader = openCsv(source)) {
+        String[] strings = reader.readNext(); // skip header row
+        Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
+        this.names = types.left;
+        this.fieldTypes = types.right;
+        //noinspection unchecked
+        RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
+        String[] row = reader.readNext();
+        while (row != null) {
+          rows.add(rowConverter.convertRow(row));
+          row = reader.readNext();
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -104,7 +104,7 @@ public class CsvSortedTable implements Collection<Object[]> {
   }
 
   @Override
-  public Iterator<Object[]> iterator() {
+  public Iterator<E> iterator() {
     return rows.iterator();
   }
 
@@ -119,8 +119,8 @@ public class CsvSortedTable implements Collection<Object[]> {
   }
 
   @Override
-  public boolean add(Object[] objects) {
-    return rows.add(objects);
+  public boolean add(E o) {
+    return rows.add(o);
   }
 
   @Override
@@ -134,7 +134,7 @@ public class CsvSortedTable implements Collection<Object[]> {
   }
 
   @Override
-  public boolean addAll(Collection<? extends Object[]> c) {
+  public boolean addAll(Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
@@ -144,7 +144,7 @@ public class CsvSortedTable implements Collection<Object[]> {
   }
 
   @Override
-  public boolean removeIf(Predicate<? super Object[]> filter) {
+  public boolean removeIf(Predicate<? super E> filter) {
     throw new UnsupportedOperationException();
   }
 
@@ -169,23 +169,18 @@ public class CsvSortedTable implements Collection<Object[]> {
   }
 
   @Override
-  public Spliterator<Object[]> spliterator() {
+  public Spliterator<E> spliterator() {
     return rows.spliterator();
   }
 
   @Override
-  public Stream<Object[]> stream() {
+  public Stream<E> stream() {
     return rows.stream();
   }
 
   @Override
-  public Stream<Object[]> parallelStream() {
+  public Stream<E> parallelStream() {
     return rows.parallelStream();
-  }
-
-  private static RowConverter converter(List<SortedTableColumnType> fieldTypes) {
-    final int[] fields = SortedTable.identityList(fieldTypes.size());
-    return new ArrayRowConverter(fieldTypes, fields);
   }
 
   private static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
@@ -227,10 +222,21 @@ public class CsvSortedTable implements Collection<Object[]> {
     return new CSVReader(fileReader);
   }
 
+  private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes) {
+    final int[] fields = SortedTable.identityList(fieldTypes.size());
+    if (fields.length == 1) {
+      final int field = fields[0];
+      return new SingleColumnRowConverter(fieldTypes.get(field), field);
+    } else {
+      return new ArrayRowConverter(fieldTypes, fields);
+    }
+  }
+
   /** Row converter.
-   */
-  abstract static class RowConverter {
-    abstract Object[] convertRow(String[] rows);
+   *
+   * @param <E> element type */
+  abstract static class RowConverter<E> {
+    abstract E convertRow(String[] rows);
 
     protected Object convert(SortedTableColumnType fieldType, String string) {
       if (fieldType == null) {
@@ -310,7 +316,7 @@ public class CsvSortedTable implements Collection<Object[]> {
   }
 
   /** Array row converter. */
-  static class ArrayRowConverter extends RowConverter {
+  static class ArrayRowConverter extends RowConverter<Object[]> {
     private final SortedTableColumnType[] fieldTypes;
     private final int[] fields;
 
@@ -326,6 +332,21 @@ public class CsvSortedTable implements Collection<Object[]> {
         objects[i] = convert(fieldTypes[field], strings[field]);
       }
       return objects;
+    }
+  }
+
+  /** Single column row converter. */
+  private static class SingleColumnRowConverter extends RowConverter<Object> {
+    private final SortedTableColumnType fieldType;
+    private final int fieldIndex;
+
+    private SingleColumnRowConverter(SortedTableColumnType fieldType, int fieldIndex) {
+      this.fieldType = fieldType;
+      this.fieldIndex = fieldIndex;
+    }
+
+    public Object convertRow(String[] strings) {
+      return convert(fieldType, strings[fieldIndex]);
     }
   }
 }

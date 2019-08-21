@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.table;
 
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Source;
@@ -97,7 +98,7 @@ public class SortedTableSchema extends AbstractSchema {
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
-        final Table table = createTable(source);
+        final Table table = createTable(source, null);
         tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
       }
     }
@@ -105,14 +106,14 @@ public class SortedTableSchema extends AbstractSchema {
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */
-  public Table createTable(Source source) {
+  public Table createTable(Source source, RelProtoDataType protoRowType) {
     switch (flavor) {
     case TRANSLATABLE:
-      return new SortedTranslatableTable(source, null);
+      return new SortedTranslatableTable(source, protoRowType);
     case SCANNABLE:
-      return new SortedScannableTable(source, null);
+      return new SortedScannableTable(source, protoRowType);
     case FILTERABLE:
-      return new SortedFilterableTable(source, null);
+      return new SortedFilterableTable(source, protoRowType);
     default:
       throw new AssertionError("Unknown flavor " + this.flavor);
     }

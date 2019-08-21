@@ -123,10 +123,12 @@ public class SqlCreateTable extends SqlCreate
           pair.right.deriveType(typeFactory, true));
     }
     final RelDataType rowType = builder.build();
-    //schema.plus().unwrap(SortedTableSchema.class).add(name.getSimple(), )
-    schema.add(name.getSimple(),
-        new MutableArrayTable(name.getSimple(),
-            RelDataTypeImpl.proto(rowType)));
+    SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
+    schemaPlus.add(name.getSimple(),
+      schemaPlus.createTable(null, RelDataTypeImpl.proto(rowType)));
+    //schema.add(name.getSimple(),
+    //    new MutableArrayTable(name.getSimple(),
+    //        RelDataTypeImpl.proto(rowType)));
   }
 
   /** Abstract base class for implementations of {@link ModifiableTable}. */
