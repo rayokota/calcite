@@ -19,7 +19,9 @@ package org.apache.calcite.adapter.table;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.kafka.common.utils.Bytes;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,15 +33,14 @@ import java.util.Map;
  * makes it easier to write SQL.</p>
  */
 public enum SortedTableColumnType {
-  STRING(String.class, "string"),
   BOOLEAN(Primitive.BOOLEAN),
-  BYTE(Primitive.BYTE),
-  CHAR(Primitive.CHAR),
-  SHORT(Primitive.SHORT),
   INT(Primitive.INT),
   LONG(Primitive.LONG),
   FLOAT(Primitive.FLOAT),
   DOUBLE(Primitive.DOUBLE),
+  BYTES(Bytes.class, "bytes"),
+  STRING(String.class, "string"),
+  DECIMAL(BigDecimal.class, "decimal"),
   DATE(java.sql.Date.class, "date"),
   TIME(java.sql.Time.class, "time"),
   TIMESTAMP(java.sql.Timestamp.class, "timestamp");

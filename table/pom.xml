@@ -48,6 +48,11 @@ limitations under the License.
       <artifactId>calcite-server</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.kcache</groupId>
+      <artifactId>kcache</artifactId>
+      <version>1.0.1</version>
+    </dependency>
 
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

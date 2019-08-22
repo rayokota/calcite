@@ -17,13 +17,16 @@
 package org.apache.calcite.adapter.table;
 
 import au.com.bytecode.opencsv.CSVReader;
+import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.kafka.common.utils.Bytes;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -240,16 +243,6 @@ public class CsvSortedTable<E> implements Collection<E> {
             return null;
           }
           return Boolean.parseBoolean(string);
-        case BYTE:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Byte.parseByte(string);
-        case SHORT:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Short.parseShort(string);
         case INT:
           if (string.length() == 0) {
             return null;
@@ -270,6 +263,20 @@ public class CsvSortedTable<E> implements Collection<E> {
             return null;
           }
           return Double.parseDouble(string);
+        case BYTES:
+          if (string.length() == 0) {
+            return Bytes.wrap(new byte[0]);
+          }
+          try {
+            return Bytes.wrap(Base64.decode(string));
+          } catch (IOException e) {
+            return null;
+          }
+        case DECIMAL:
+          if (string.length() == 0) {
+            return null;
+          }
+          return new BigDecimal(string);
         case DATE:
           if (string.length() == 0) {
             return null;

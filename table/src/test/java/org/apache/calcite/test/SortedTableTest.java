@@ -202,6 +202,7 @@ public class SortedTableTest {
       resultSet = s.executeQuery(sql);
       output(resultSet);
       resultSet.close();
+
       s.close();
     }
   }

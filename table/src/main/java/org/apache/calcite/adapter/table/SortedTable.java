@@ -42,6 +42,7 @@ import org.apache.calcite.util.Source;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -50,7 +51,7 @@ import java.util.List;
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   protected final RelProtoDataType protoRowType;
   protected final Collection<?> rows;
-  protected final List <String> names;
+  protected final List<String> names;
   protected final List<SortedTableColumnType> fieldTypes;
 
   /** Creates a CsvTable. */
@@ -129,6 +130,21 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
       integers[i] = i;
     }
     return integers;
+  }
+
+  class ArrayComparator<T extends Comparable<T>> implements Comparator<T[]> {
+
+    @Override
+    public int compare(T[] o1, T[] o2) {
+      for (int i = 0; i < Math.min(o1.length, o2.length); i++) {
+        int c = o1[i].compareTo(o2[i]);
+        if (c != 0) {
+          return c;
+        }
+      }
+      return Integer.compare(o1.length, o2.length);
+    }
+
   }
 }
 
