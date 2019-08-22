@@ -46,9 +46,7 @@ public class SortedTableFactory implements TableFactory<SortedTable> {
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final Source source = Sources.file(base, fileName);
-    final RelProtoDataType protoRowType =
-        rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new SortedScannableTable(source, protoRowType);
+    return new SortedScannableTable(source, rowType);
   }
 }
 

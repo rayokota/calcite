@@ -31,6 +31,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
@@ -55,9 +56,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   protected final List<SortedTableColumnType> fieldTypes;
 
   /** Creates a CsvTable. */
-  SortedTable(Source source, RelProtoDataType protoRowType) {
+  SortedTable(Source source, RelDataType rowType) {
     super(Object[].class);
-    this.protoRowType = protoRowType;
+    this.protoRowType = rowType != null ? RelDataTypeImpl.proto(rowType) : null;
     CsvSortedTable<?> csvTable = new CsvSortedTable<>(source);
     this.rows = csvTable;
     this.names = csvTable.names;
@@ -96,6 +97,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return o.getClass().isArray() ? (Object[]) o : new Object[]{o};
   }
 
+  @Override
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);

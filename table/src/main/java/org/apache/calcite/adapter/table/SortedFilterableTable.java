@@ -21,6 +21,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -42,8 +43,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedFilterableTable extends SortedTable
     implements FilterableTable {
   /** Creates a CsvFilterableTable. */
-  public SortedFilterableTable(Source source, RelProtoDataType protoRowType) {
-    super(source, protoRowType);
+  public SortedFilterableTable(Source source, RelDataType rowType) {
+    super(source, rowType);
   }
 
   public String toString() {

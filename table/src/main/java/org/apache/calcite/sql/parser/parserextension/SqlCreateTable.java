@@ -124,8 +124,7 @@ public class SqlCreateTable extends SqlCreate
     }
     final RelDataType rowType = builder.build();
     SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
-    schemaPlus.add(name.getSimple(),
-      schemaPlus.createTable(null, RelDataTypeImpl.proto(rowType)));
+    schemaPlus.add(name.getSimple(), schemaPlus.createTable(null, rowType));
     //schema.add(name.getSimple(),
     //    new MutableArrayTable(name.getSimple(),
     //        RelDataTypeImpl.proto(rowType)));

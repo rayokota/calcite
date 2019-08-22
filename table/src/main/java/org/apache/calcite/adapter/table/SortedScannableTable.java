@@ -21,6 +21,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.Source;
@@ -36,8 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedScannableTable extends SortedTable
     implements ScannableTable {
   /** Creates a CsvScannableTable. */
-  public SortedScannableTable(Source source, RelProtoDataType protoRowType) {
-    super(source, protoRowType);
+  public SortedScannableTable(Source source, RelDataType rowType) {
+    super(source, rowType);
   }
 
   public String toString() {

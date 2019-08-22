@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.table;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -31,8 +32,7 @@ import java.util.Map;
  * is a CSV file in that directory.
  */
 public class SortedTableSchema extends AbstractSchema {
-  private final File directoryFile;
-  private final SortedTable.Flavor flavor;
+  private SortedTable.Flavor flavor;
   private Map<String, Table> tableMap;
 
   /**
@@ -44,75 +44,29 @@ public class SortedTableSchema extends AbstractSchema {
    */
   public SortedTableSchema(File directoryFile, SortedTable.Flavor flavor) {
     super();
-    this.directoryFile = directoryFile;
     this.flavor = flavor;
-  }
-
-  /** Looks for a suffix on a string and returns
-   * either the string with the suffix removed
-   * or the original string. */
-  private static String trim(String s, String suffix) {
-    String trimmed = trimOrNull(s, suffix);
-    return trimmed != null ? trimmed : s;
-  }
-
-  /** Looks for a suffix on a string and returns
-   * either the string with the suffix removed
-   * or null. */
-  private static String trimOrNull(String s, String suffix) {
-    return s.endsWith(suffix)
-        ? s.substring(0, s.length() - suffix.length())
-        : null;
+    this.tableMap = new CsvSortedTableSchema(this, directoryFile);
   }
 
   public void add(String name, Table table) {
-    Map<String, Table> tableMap = getTableMap();
     tableMap.put(name, table);
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    if (tableMap == null) {
-      tableMap = createTableMap();
-    }
-    return tableMap;
-  }
-
-  private Map<String, Table> createTableMap() {
-    // Look for files in the directory ending in ".csv", ".csv.gz"
-    final Source baseSource = Sources.of(directoryFile);
-    File[] files = directoryFile.listFiles((dir, name) -> {
-      final String nameSansGz = trim(name, ".gz");
-      return nameSansGz.endsWith(".csv");
-    });
-    if (files == null) {
-      System.out.println("directory " + directoryFile + " not found");
-      files = new File[0];
-    }
-    // Build a map from table name to table; each file becomes a table.
-    Map<String, Table> tableMap = new HashMap<>();
-    for (File file : files) {
-      Source source = Sources.of(file);
-      Source sourceSansGz = source.trim(".gz");
-      final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
-      if (sourceSansCsv != null) {
-        final Table table = createTable(source, null);
-        tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
-      }
-    }
     return tableMap;
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */
-  public Table createTable(Source source, RelProtoDataType protoRowType) {
+  public Table createTable(Source source, RelDataType rowType) {
     switch (flavor) {
     case TRANSLATABLE:
-      return new SortedTranslatableTable(source, protoRowType);
+      return new SortedTranslatableTable(source, rowType);
     case SCANNABLE:
-      return new SortedScannableTable(source, protoRowType);
+      return new SortedScannableTable(source, rowType);
     case FILTERABLE:
-      return new SortedFilterableTable(source, protoRowType);
+      return new SortedFilterableTable(source, rowType);
     default:
-      throw new AssertionError("Unknown flavor " + this.flavor);
+      throw new AssertionError("Unknown flavor " + flavor);
     }
   }
 }

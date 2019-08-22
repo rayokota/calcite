@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.SchemaPlus;
@@ -41,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedTranslatableTable extends SortedTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  public SortedTranslatableTable(Source source, RelProtoDataType protoRowType) {
-    super(source, protoRowType);
+  public SortedTranslatableTable(Source source, RelDataType rowType) {
+    super(source, rowType);
   }
 
   public String toString() {
