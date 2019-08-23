@@ -16,17 +16,23 @@
  */
 package org.apache.calcite.adapter.table;
 
+import au.com.bytecode.opencsv.CSVReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -88,10 +94,61 @@ public class CsvSortedTableSchema implements Map<String, Table> {
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
-        final Table table = schema.createTable(source, null);
+        final Table table = schema.createTable(source, getRowType(source));
         tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
       }
     }
+  }
+
+  private RelDataType getRowType(Source source) {
+    try (CSVReader reader = openCsv(source)) {
+      String[] strings = reader.readNext(); // get header row
+      Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
+      List<String> names = types.left;
+      List<SortedTableColumnType> fieldTypes = types.right;
+      return SortedTableSchema.deduceRowType(names, fieldTypes);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static CSVReader openCsv(Source source) throws IOException {
+    final Reader fileReader = source.reader();
+    return new CSVReader(fileReader);
+  }
+
+  private static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
+    final List<String> names = new ArrayList<>();
+    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
+    if (strings == null) {
+      strings = new String[]{"EmptyFileHasNoColumns:boolean"};
+    }
+    for (String string : strings) {
+      final String name;
+      final SortedTableColumnType fieldType;
+      final int colon = string.indexOf(':');
+      if (colon >= 0) {
+        name = string.substring(0, colon);
+        String typeString = string.substring(colon + 1);
+        fieldType = SortedTableColumnType.of(typeString);
+        if (fieldType == null) {
+          System.out.println("WARNING: Found unknown type: "
+                  + typeString + " in file: "
+                  + " for column: " + name
+                  + ". Will assume the type of column is string");
+        }
+      } else {
+        name = string;
+        fieldType = null;
+      }
+      names.add(name);
+      fieldTypes.add(fieldType);
+    }
+    if (names.isEmpty()) {
+      names.add("line");
+      fieldTypes.add(null);
+    }
+    return Pair.of(names, fieldTypes);
   }
 
   @Override

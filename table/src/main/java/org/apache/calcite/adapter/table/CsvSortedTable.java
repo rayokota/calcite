@@ -83,6 +83,138 @@ public class CsvSortedTable<E> implements Collection<E> {
     }
   }
 
+  private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes) {
+    final int[] fields = SortedTable.identityList(fieldTypes.size());
+    if (fields.length == 1) {
+      final int field = fields[0];
+      return new SingleColumnRowConverter(fieldTypes.get(field), field);
+    } else {
+      return new ArrayRowConverter(fieldTypes, fields);
+    }
+  }
+
+  /** Row converter.
+   *
+   * @param <E> element type */
+  abstract static class RowConverter<E> {
+    abstract E convertRow(String[] rows);
+
+    protected Object convert(SortedTableColumnType fieldType, String string) {
+      if (fieldType == null) {
+        return string;
+      }
+      switch (fieldType) {
+        case BOOLEAN:
+          if (string.length() == 0) {
+            return null;
+          }
+          return Boolean.parseBoolean(string);
+        case INT:
+          if (string.length() == 0) {
+            return null;
+          }
+          return Integer.parseInt(string);
+        case LONG:
+          if (string.length() == 0) {
+            return null;
+          }
+          return Long.parseLong(string);
+        case FLOAT:
+          if (string.length() == 0) {
+            return null;
+          }
+          return Float.parseFloat(string);
+        case DOUBLE:
+          if (string.length() == 0) {
+            return null;
+          }
+          return Double.parseDouble(string);
+        case BYTES:
+          if (string.length() == 0) {
+            return Bytes.wrap(new byte[0]);
+          }
+          try {
+            return Bytes.wrap(Base64.decode(string));
+          } catch (IOException e) {
+            return null;
+          }
+        case DECIMAL:
+          if (string.length() == 0) {
+            return null;
+          }
+          return new BigDecimal(string);
+        case DATE:
+          if (string.length() == 0) {
+            return null;
+          }
+          try {
+            Date date = TIME_FORMAT_DATE.parse(string);
+            return (int) (date.getTime() / DateTimeUtils.MILLIS_PER_DAY);
+          } catch (ParseException e) {
+            return null;
+          }
+        case TIME:
+          if (string.length() == 0) {
+            return null;
+          }
+          try {
+            Date date = TIME_FORMAT_TIME.parse(string);
+            return (int) date.getTime();
+          } catch (ParseException e) {
+            return null;
+          }
+        case TIMESTAMP:
+          if (string.length() == 0) {
+            return null;
+          }
+          try {
+            Date date = TIME_FORMAT_TIMESTAMP.parse(string);
+            return date.getTime();
+          } catch (ParseException e) {
+            return null;
+          }
+        case STRING:
+        default:
+          return string;
+      }
+    }
+  }
+
+  /** Array row converter. */
+  static class ArrayRowConverter extends RowConverter<Object[]> {
+    private final SortedTableColumnType[] fieldTypes;
+    private final int[] fields;
+
+    ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields) {
+      this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
+      this.fields = fields;
+    }
+
+    public Object[] convertRow(String[] strings) {
+      final Object[] objects = new Object[fields.length];
+      for (int i = 0; i < fields.length; i++) {
+        int field = fields[i];
+        objects[i] = convert(fieldTypes[field], strings[field]);
+      }
+      return objects;
+    }
+  }
+
+  /** Single column row converter. */
+  private static class SingleColumnRowConverter extends RowConverter<Object> {
+    private final SortedTableColumnType fieldType;
+    private final int fieldIndex;
+
+    private SingleColumnRowConverter(SortedTableColumnType fieldType, int fieldIndex) {
+      this.fieldType = fieldType;
+      this.fieldIndex = fieldIndex;
+    }
+
+    public Object convertRow(String[] strings) {
+      return convert(fieldType, strings[fieldIndex]);
+    }
+  }
+
   @Override
   public int size() {
     return rows.size();
@@ -217,137 +349,6 @@ public class CsvSortedTable<E> implements Collection<E> {
     return new CSVReader(fileReader);
   }
 
-  private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes) {
-    final int[] fields = SortedTable.identityList(fieldTypes.size());
-    if (fields.length == 1) {
-      final int field = fields[0];
-      return new SingleColumnRowConverter(fieldTypes.get(field), field);
-    } else {
-      return new ArrayRowConverter(fieldTypes, fields);
-    }
-  }
-
-  /** Row converter.
-   *
-   * @param <E> element type */
-  abstract static class RowConverter<E> {
-    abstract E convertRow(String[] rows);
-
-    protected Object convert(SortedTableColumnType fieldType, String string) {
-      if (fieldType == null) {
-        return string;
-      }
-      switch (fieldType) {
-        case BOOLEAN:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Boolean.parseBoolean(string);
-        case INT:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Integer.parseInt(string);
-        case LONG:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Long.parseLong(string);
-        case FLOAT:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Float.parseFloat(string);
-        case DOUBLE:
-          if (string.length() == 0) {
-            return null;
-          }
-          return Double.parseDouble(string);
-        case BYTES:
-          if (string.length() == 0) {
-            return Bytes.wrap(new byte[0]);
-          }
-          try {
-            return Bytes.wrap(Base64.decode(string));
-          } catch (IOException e) {
-            return null;
-          }
-        case DECIMAL:
-          if (string.length() == 0) {
-            return null;
-          }
-          return new BigDecimal(string);
-        case DATE:
-          if (string.length() == 0) {
-            return null;
-          }
-          try {
-            Date date = TIME_FORMAT_DATE.parse(string);
-            return (int) (date.getTime() / DateTimeUtils.MILLIS_PER_DAY);
-          } catch (ParseException e) {
-            return null;
-          }
-        case TIME:
-          if (string.length() == 0) {
-            return null;
-          }
-          try {
-            Date date = TIME_FORMAT_TIME.parse(string);
-            return (int) date.getTime();
-          } catch (ParseException e) {
-            return null;
-          }
-        case TIMESTAMP:
-          if (string.length() == 0) {
-            return null;
-          }
-          try {
-            Date date = TIME_FORMAT_TIMESTAMP.parse(string);
-            return date.getTime();
-          } catch (ParseException e) {
-            return null;
-          }
-        case STRING:
-        default:
-          return string;
-      }
-    }
-  }
-
-  /** Array row converter. */
-  static class ArrayRowConverter extends RowConverter<Object[]> {
-    private final SortedTableColumnType[] fieldTypes;
-    private final int[] fields;
-
-    ArrayRowConverter(List<SortedTableColumnType> fieldTypes, int[] fields) {
-      this.fieldTypes = fieldTypes.toArray(new SortedTableColumnType[0]);
-      this.fields = fields;
-    }
-
-    public Object[] convertRow(String[] strings) {
-      final Object[] objects = new Object[fields.length];
-      for (int i = 0; i < fields.length; i++) {
-        int field = fields[i];
-        objects[i] = convert(fieldTypes[field], strings[field]);
-      }
-      return objects;
-    }
-  }
-
-  /** Single column row converter. */
-  private static class SingleColumnRowConverter extends RowConverter<Object> {
-    private final SortedTableColumnType fieldType;
-    private final int fieldIndex;
-
-    private SingleColumnRowConverter(SortedTableColumnType fieldType, int fieldIndex) {
-      this.fieldType = fieldType;
-      this.fieldIndex = fieldIndex;
-    }
-
-    public Object convertRow(String[] strings) {
-      return convert(fieldType, strings[fieldIndex]);
-    }
-  }
 }
 
 // End CsvSortedTable.java

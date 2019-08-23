@@ -16,16 +16,31 @@
  */
 package org.apache.calcite.adapter.table;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.Base64;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
+import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.kafka.common.utils.Bytes;
 
 import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
@@ -54,6 +69,22 @@ public class SortedTableSchema extends AbstractSchema {
 
   @Override protected Map<String, Table> getTableMap() {
     return tableMap;
+  }
+
+  public static RelDataType deduceRowType(List<String> names,
+                                           List<SortedTableColumnType> fieldTypes) {
+    JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    List<RelDataType> types = new ArrayList<>();
+    for (SortedTableColumnType fieldType : fieldTypes) {
+      final RelDataType type;
+      if (fieldType == null) {
+        type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      } else {
+        type = fieldType.toType(typeFactory);
+      }
+      types.add(type);
+    }
+    return typeFactory.createStructType(Pair.zip(names, types));
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */

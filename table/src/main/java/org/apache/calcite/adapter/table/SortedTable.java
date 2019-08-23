@@ -102,6 +102,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }
+    // TODO remove
     return deduceRowType((JavaTypeFactory) typeFactory, names, fieldTypes);
   }
 
