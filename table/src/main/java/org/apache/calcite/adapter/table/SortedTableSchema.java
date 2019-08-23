@@ -60,7 +60,7 @@ public class SortedTableSchema extends AbstractSchema {
   public SortedTableSchema(File directoryFile, SortedTable.Flavor flavor) {
     super();
     this.flavor = flavor;
-    this.tableMap = new CsvSortedTableSchema(this, directoryFile);
+    this.tableMap = new CsvSortedTableSchema(directoryFile, flavor);
   }
 
   public void add(String name, Table table) {
@@ -72,7 +72,7 @@ public class SortedTableSchema extends AbstractSchema {
   }
 
   public static RelDataType deduceRowType(List<String> names,
-                                           List<SortedTableColumnType> fieldTypes) {
+                                          List<SortedTableColumnType> fieldTypes) {
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
     List<RelDataType> types = new ArrayList<>();
     for (SortedTableColumnType fieldType : fieldTypes) {
@@ -87,8 +87,12 @@ public class SortedTableSchema extends AbstractSchema {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  /** Creates different sub-type of table based on the "flavor" attribute. */
   public Table createTable(Source source, RelDataType rowType) {
+      return createTable(source, rowType, flavor);
+  }
+
+  /** Creates different sub-type of table based on the "flavor" attribute. */
+  public static Table createTable(Source source, RelDataType rowType, SortedTable.Flavor flavor) {
     switch (flavor) {
     case TRANSLATABLE:
       return new SortedTranslatableTable(source, rowType);

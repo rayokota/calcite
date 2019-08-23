@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.table;
 import au.com.bytecode.opencsv.CSVReader;
 import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -48,6 +50,7 @@ public class CsvSortedTable<E> implements Collection<E> {
   protected List<String> names;
   protected List<SortedTableColumnType> fieldTypes;
   protected Collection<E> rows;
+  protected RelDataType rowType;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -62,14 +65,13 @@ public class CsvSortedTable<E> implements Collection<E> {
   }
 
   /** Creates a CsvTable. */
-  CsvSortedTable(Source source) {
+  CsvSortedTable(Source source, RelDataType rowType) {
     this.rows = new CopyOnWriteArrayList<>();
+    this.rowType = rowType != null ? rowType : CsvSortedTableSchema.getRowType(source);
     if (source != null) {
       try (CSVReader reader = openCsv(source)) {
         String[] strings = reader.readNext(); // skip header row
-        Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
-        this.names = types.left;
-        this.fieldTypes = types.right;
+        List<SortedTableColumnType> fieldTypes = getFieldTypes();
         //noinspection unchecked
         RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
         String[] row = reader.readNext();
@@ -81,6 +83,19 @@ public class CsvSortedTable<E> implements Collection<E> {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private static CSVReader openCsv(Source source) throws IOException {
+    final Reader fileReader = source.reader();
+    return new CSVReader(fileReader);
+  }
+
+  private List<SortedTableColumnType> getFieldTypes() {
+    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      fieldTypes.add(SortedTableColumnType.of(field.getType().getSqlTypeName()));
+    }
+    return fieldTypes;
   }
 
   private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes) {
@@ -309,46 +324,6 @@ public class CsvSortedTable<E> implements Collection<E> {
   public Stream<E> parallelStream() {
     return rows.parallelStream();
   }
-
-  private static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
-    final List<String> names = new ArrayList<>();
-    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
-    if (strings == null) {
-      strings = new String[]{"EmptyFileHasNoColumns:boolean"};
-    }
-    for (String string : strings) {
-      final String name;
-      final SortedTableColumnType fieldType;
-      final int colon = string.indexOf(':');
-      if (colon >= 0) {
-        name = string.substring(0, colon);
-        String typeString = string.substring(colon + 1);
-        fieldType = SortedTableColumnType.of(typeString);
-        if (fieldType == null) {
-          System.out.println("WARNING: Found unknown type: "
-                  + typeString + " in file: "
-                  + " for column: " + name
-                  + ". Will assume the type of column is string");
-        }
-      } else {
-        name = string;
-        fieldType = null;
-      }
-      names.add(name);
-      fieldTypes.add(fieldType);
-    }
-    if (names.isEmpty()) {
-      names.add("line");
-      fieldTypes.add(null);
-    }
-    return Pair.of(names, fieldTypes);
-  }
-
-  private static CSVReader openCsv(Source source) throws IOException {
-    final Reader fileReader = source.reader();
-    return new CSVReader(fileReader);
-  }
-
 }
 
 // End CsvSortedTable.java

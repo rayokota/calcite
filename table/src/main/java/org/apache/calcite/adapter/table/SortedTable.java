@@ -50,19 +50,19 @@ import java.util.List;
  * Base class for table that reads CSV files.
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
-  protected final RelProtoDataType protoRowType;
+  protected final RelDataType rowType;
   protected final Collection<?> rows;
-  protected final List<String> names;
-  protected final List<SortedTableColumnType> fieldTypes;
 
   /** Creates a CsvTable. */
   SortedTable(Source source, RelDataType rowType) {
     super(Object[].class);
-    this.protoRowType = rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    CsvSortedTable<?> csvTable = new CsvSortedTable<>(source);
+    CsvSortedTable<?> csvTable = new CsvSortedTable<>(source, rowType);
     this.rows = csvTable;
-    this.names = csvTable.names;
-    this.fieldTypes = csvTable.fieldTypes;
+    this.rowType = csvTable.rowType;
+  }
+
+  protected int size() {
+    return rowType.getFieldList().size();
   }
 
   @Override public TableModify toModificationRel(
@@ -99,31 +99,13 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
   @Override
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    if (protoRowType != null) {
-      return protoRowType.apply(typeFactory);
-    }
-    // TODO remove
-    return deduceRowType((JavaTypeFactory) typeFactory, names, fieldTypes);
+    RelProtoDataType protoRowType = rowType != null ? RelDataTypeImpl.proto(rowType) : null;
+    return protoRowType.apply(typeFactory);
   }
 
   /** Various degrees of table "intelligence". */
   public enum Flavor {
     SCANNABLE, FILTERABLE, TRANSLATABLE
-  }
-
-  private static RelDataType deduceRowType(JavaTypeFactory typeFactory, List<String> names,
-                                   List<SortedTableColumnType> fieldTypes) {
-    List<RelDataType> types = new ArrayList<>();
-    for (SortedTableColumnType fieldType : fieldTypes) {
-      final RelDataType type;
-      if (fieldType == null) {
-        type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-      } else {
-        type = fieldType.toType(typeFactory);
-      }
-      types.add(type);
-    }
-    return typeFactory.createStructType(Pair.zip(names, types));
   }
 
   /** Returns an array of integers {0, ..., n - 1}. */

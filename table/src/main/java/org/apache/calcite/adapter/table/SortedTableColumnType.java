@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.table;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.kafka.common.utils.Bytes;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -33,36 +33,40 @@ import java.util.Map;
  * makes it easier to write SQL.</p>
  */
 public enum SortedTableColumnType {
-  BOOLEAN(Primitive.BOOLEAN),
-  INT(Primitive.INT),
-  LONG(Primitive.LONG),
-  FLOAT(Primitive.FLOAT),
-  DOUBLE(Primitive.DOUBLE),
-  BYTES(Bytes.class, "bytes"),
-  STRING(String.class, "string"),
-  DECIMAL(BigDecimal.class, "decimal"),
-  DATE(java.sql.Date.class, "date"),
-  TIME(java.sql.Time.class, "time"),
-  TIMESTAMP(java.sql.Timestamp.class, "timestamp");
+  BOOLEAN(Primitive.BOOLEAN, SqlTypeName.BOOLEAN),
+  INT(Primitive.INT, SqlTypeName.INTEGER),
+  LONG(Primitive.LONG, SqlTypeName.BIGINT),
+  FLOAT(Primitive.FLOAT, SqlTypeName.REAL),
+  DOUBLE(Primitive.DOUBLE, SqlTypeName.DOUBLE),
+  BYTES(byte[].class, "bytes", SqlTypeName.VARBINARY),
+  STRING(String.class, "string", SqlTypeName.VARCHAR),
+  DECIMAL(BigDecimal.class, "decimal", SqlTypeName.DECIMAL),
+  DATE(java.sql.Date.class, "date", SqlTypeName.DATE),
+  TIME(java.sql.Time.class, "time", SqlTypeName.TIME),
+  TIMESTAMP(java.sql.Timestamp.class, "timestamp", SqlTypeName.TIMESTAMP);
 
   private final Class clazz;
   private final String simpleName;
+  private final SqlTypeName sqlType;
 
-  private static final Map<String, SortedTableColumnType> MAP = new HashMap<>();
+  private static final Map<String, SortedTableColumnType> NAMES = new HashMap<>();
+  private static final Map<SqlTypeName, SortedTableColumnType> TYPES = new HashMap<>();
 
   static {
     for (SortedTableColumnType value : values()) {
-      MAP.put(value.simpleName, value);
+      NAMES.put(value.simpleName, value);
+      TYPES.put(value.sqlType, value);
     }
   }
 
-  SortedTableColumnType(Primitive primitive) {
-    this(primitive.boxClass, primitive.primitiveName);
+  SortedTableColumnType(Primitive primitive, SqlTypeName sqlType) {
+    this(primitive.boxClass, primitive.primitiveName, sqlType);
   }
 
-  SortedTableColumnType(Class clazz, String simpleName) {
+  SortedTableColumnType(Class clazz, String simpleName, SqlTypeName sqlType) {
     this.clazz = clazz;
     this.simpleName = simpleName;
+    this.sqlType = sqlType;
   }
 
   public RelDataType toType(JavaTypeFactory typeFactory) {
@@ -72,7 +76,11 @@ public enum SortedTableColumnType {
   }
 
   public static SortedTableColumnType of(String typeString) {
-    return MAP.get(typeString);
+    return NAMES.get(typeString);
+  }
+
+  public static SortedTableColumnType of(SqlTypeName sqlType) {
+    return TYPES.get(sqlType);
   }
 }
 

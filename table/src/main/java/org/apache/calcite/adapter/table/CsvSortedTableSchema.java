@@ -44,8 +44,8 @@ import java.util.function.Function;
  * is a CSV file in that directory.
  */
 public class CsvSortedTableSchema implements Map<String, Table> {
-  private final SortedTableSchema schema;
   private final File directoryFile;
+  private SortedTable.Flavor flavor;
   private final Map<String, Table> tableMap;
 
   /**
@@ -53,9 +53,9 @@ public class CsvSortedTableSchema implements Map<String, Table> {
    *
    * @param directoryFile Directory that holds {@code .csv} files
    */
-  public CsvSortedTableSchema(SortedTableSchema schema, File directoryFile) {
-    this.schema = schema;
+  public CsvSortedTableSchema(File directoryFile, SortedTable.Flavor flavor) {
     this.directoryFile = directoryFile;
+    this.flavor = flavor;
     this.tableMap = new HashMap<>();
     init();
   }
@@ -94,13 +94,13 @@ public class CsvSortedTableSchema implements Map<String, Table> {
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
-        final Table table = schema.createTable(source, getRowType(source));
+        final Table table = SortedTableSchema.createTable(source, getRowType(source), flavor);
         tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
       }
     }
   }
 
-  private RelDataType getRowType(Source source) {
+  public static RelDataType getRowType(Source source) {
     try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext(); // get header row
       Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
