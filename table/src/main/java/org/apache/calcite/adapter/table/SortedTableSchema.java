@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.table;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.adapter.table.avro.AvroSortedTableSchema;
 import org.apache.calcite.adapter.table.csv.CsvSortedTableSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -50,7 +51,9 @@ public class SortedTableSchema extends AbstractSchema {
     } else {
       this.flavor = SortedTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     }
-    this.tableMap = new CsvSortedTableSchema(this);
+    // TODO
+    //this.tableMap = new CsvSortedTableSchema(this);
+    this.tableMap = new AvroSortedTableSchema(this);
     ((Configurable) tableMap).configure(operand);
   }
 

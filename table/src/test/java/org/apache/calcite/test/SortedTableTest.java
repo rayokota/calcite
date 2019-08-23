@@ -279,6 +279,11 @@ public class SortedTableTest {
     }).ok();
   }
 
+  @Test public void testAvro() throws SQLException {
+    sql("avro", "select * from \"users\"").ok();
+    sql("avro", "select \"name\" from \"users\"").ok();
+  }
+
   @Test public void testCustomTable() throws SQLException {
     sql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS").ok();
   }

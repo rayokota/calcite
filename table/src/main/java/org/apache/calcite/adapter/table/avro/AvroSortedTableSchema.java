@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.table.csv;
+package org.apache.calcite.adapter.table.avro;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.google.common.collect.ForwardingMap;
+import avro.shaded.com.google.common.collect.ForwardingMap;
+import org.apache.avro.Schema;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.model.ModelHandler;
@@ -31,7 +32,6 @@ import org.apache.kafka.common.Configurable;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,7 +46,7 @@ import java.util.function.Function;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class CsvSortedTableSchema extends ForwardingMap<String, Table> implements Configurable {
+public class AvroSortedTableSchema extends ForwardingMap<String, Table> implements Configurable {
   private final SortedTableSchema schema;
   private final Map<String, Table> tableMap;
   private File directoryFile;
@@ -54,7 +54,7 @@ public class CsvSortedTableSchema extends ForwardingMap<String, Table> implement
   /**
    * Creates a CSV schema.
    */
-  public CsvSortedTableSchema(SortedTableSchema schema) {
+  public AvroSortedTableSchema(SortedTableSchema schema) {
     this.schema = schema;
     this.tableMap = new HashMap<>();
   }
@@ -95,77 +95,74 @@ public class CsvSortedTableSchema extends ForwardingMap<String, Table> implement
   }
 
   private void init(Map<String, ?> operand) {
-    // Look for files in the directory ending in ".csv", ".csv.gz"
-    final Source baseSource = Sources.of(directoryFile);
-    File[] files = directoryFile.listFiles((dir, name) -> {
-      final String nameSansGz = trim(name, ".gz");
-      return nameSansGz.endsWith(".csv");
-    });
-    if (files == null) {
-      System.out.println("directory " + directoryFile + " not found");
-      files = new File[0];
-    }
-    Map<String, Object> configs = new HashMap<>(operand);
-    // Build a map from table name to table; each file becomes a table.
-    for (File file : files) {
-      Source source = Sources.of(file);
-      Source sourceSansGz = source.trim(".gz");
-      final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
-      if (sourceSansCsv != null) {
-        configs.put("file", source.file().getName());
-        final Table table = schema.createTable(configs, getRowType(source));
-        tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
+    try {
+      // Look for files in the directory ending in ".avsc"
+      final Source baseSource = Sources.of(directoryFile);
+      File[] files = directoryFile.listFiles((dir, name) -> {
+        return name.endsWith(".avsc");
+      });
+      if (files == null) {
+        System.out.println("directory " + directoryFile + " not found");
+        files = new File[0];
       }
-    }
-  }
-
-  public static RelDataType getRowType(Source source) {
-    try (CSVReader reader = openCsv(source)) {
-      String[] strings = reader.readNext(); // get header row
-      Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
-      List<String> names = types.left;
-      List<SortedTableColumnType> fieldTypes = types.right;
-      return SortedTableSchema.deduceRowType(names, fieldTypes);
+      Map<String, Object> configs = new HashMap<>(operand);
+      // Build a map from table name to table; each file becomes a table.
+      for (File file : files) {
+        Source source = Sources.of(file);
+        if (source != null) {
+          Schema.Parser parser = new Schema.Parser();
+          Schema avroSchema = parser.parse(source.file());
+          configs.put("schema", avroSchema);
+          final Table table = schema.createTable(configs, getRowType(avroSchema));
+          tableMap.put(avroSchema.getName(), table);
+        }
+      }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static CSVReader openCsv(Source source) throws IOException {
-    final Reader fileReader = source.reader();
-    return new CSVReader(fileReader);
+  public static RelDataType getRowType(Schema schema) {
+    Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(schema);
+    List<String> names = types.left;
+    List<SortedTableColumnType> fieldTypes = types.right;
+    return SortedTableSchema.deduceRowType(names, fieldTypes);
   }
 
-  private static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
+  private static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(Schema schema) {
     final List<String> names = new ArrayList<>();
     final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
-    if (strings == null) {
-      strings = new String[]{"EmptyFileHasNoColumns:boolean"};
-    }
-    for (String string : strings) {
-      final String name;
-      final SortedTableColumnType fieldType;
-      final int colon = string.indexOf(':');
-      if (colon >= 0) {
-        name = string.substring(0, colon);
-        String typeString = string.substring(colon + 1);
-        fieldType = SortedTableColumnType.of(typeString);
-        if (fieldType == null) {
-          System.out.println("WARNING: Found unknown type: "
-                  + typeString + " in file: "
-                  + " for column: " + name
-                  + ". Will assume the type of column is string");
-        }
-      } else {
-        name = string;
-        fieldType = null;
+    for (Schema.Field field : schema.getFields()) {
+      Schema fieldSchema = field.schema();
+      SortedTableColumnType fieldType;
+      switch (fieldSchema.getType()) {
+        case BOOLEAN:
+          fieldType = SortedTableColumnType.BOOLEAN;
+          break;
+        case INT:
+          fieldType = SortedTableColumnType.INT;
+          break;
+        case LONG:
+          fieldType = SortedTableColumnType.LONG;
+          break;
+        case FLOAT:
+          fieldType = SortedTableColumnType.FLOAT;
+          break;
+        case DOUBLE:
+          fieldType = SortedTableColumnType.DOUBLE;
+          break;
+        case BYTES:
+          fieldType = SortedTableColumnType.BYTES;
+          break;
+        case STRING:
+          fieldType = SortedTableColumnType.STRING;
+          break;
+          // TODO logical
+        default:
+          throw new IllegalArgumentException("Unsupported type");
       }
-      names.add(name);
+      names.add(field.name());
       fieldTypes.add(fieldType);
-    }
-    if (names.isEmpty()) {
-      names.add("line");
-      fieldTypes.add(null);
     }
     return Pair.of(names, fieldTypes);
   }

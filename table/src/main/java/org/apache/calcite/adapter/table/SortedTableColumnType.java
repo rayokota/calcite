@@ -38,6 +38,7 @@ public enum SortedTableColumnType {
   LONG(Primitive.LONG, SqlTypeName.BIGINT),
   FLOAT(Primitive.FLOAT, SqlTypeName.REAL),
   DOUBLE(Primitive.DOUBLE, SqlTypeName.DOUBLE),
+  // TODO convert to Bytes
   BYTES(byte[].class, "bytes", SqlTypeName.VARBINARY),
   STRING(String.class, "string", SqlTypeName.VARCHAR),
   DECIMAL(BigDecimal.class, "decimal", SqlTypeName.DECIMAL),

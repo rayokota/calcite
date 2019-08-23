@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.table;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.ObjectArrays;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.adapter.table.avro.AvroSortedTable;
 import org.apache.calcite.adapter.table.csv.CsvSortedTable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -57,7 +58,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType) {
     super(Object[].class);
-    CsvSortedTable<?> csvTable = new CsvSortedTable<>(rowType);
+    // TODO
+    //CsvSortedTable<?> csvTable = new CsvSortedTable<>(rowType);
+    AvroSortedTable<?> csvTable = new AvroSortedTable<>(rowType);
     csvTable.configure(operand);
     this.rows = csvTable;
     this.rowType = csvTable.getRowType();

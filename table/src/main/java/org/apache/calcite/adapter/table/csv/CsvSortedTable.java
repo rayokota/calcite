@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
+import com.google.common.collect.ForwardingMap;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.avatica.util.Base64;
@@ -34,6 +35,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,7 +55,7 @@ import java.util.function.Function;
  *
  * @param <E> Row type
  */
-public class CsvSortedTable<E> implements Map<E, E>, Configurable {
+public class CsvSortedTable<E> extends ForwardingMap<E, E> implements Configurable {
   private List<String> names;
   private List<SortedTableColumnType> fieldTypes;
   private Map<E, E> rows;
@@ -76,6 +79,11 @@ public class CsvSortedTable<E> implements Map<E, E>, Configurable {
     this.rowType = rowType;
   }
 
+  @Override
+  protected Map<E, E> delegate() {
+    return rows;
+  }
+
   public RelDataType getRowType() {
     return rowType;
   }
@@ -85,9 +93,18 @@ public class CsvSortedTable<E> implements Map<E, E>, Configurable {
   public void configure(Map<String, ?> operand) {
     String fileName = (String) operand.get("file");
     if (fileName != null) {
+      Path file = Paths.get(fileName);
+      final String directory = (String) operand.get("directory");
+      if (directory != null) {
+        file = Paths.get(directory, file.toString());
+      }
       final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
-      final Source source = base != null ? Sources.file(base, fileName) : Sources.of(new File(fileName));
+      if (base != null) {
+        file = Paths.get(base.getPath(), file.toString());
+      }
+      final Source source = Sources.of(file.toFile());
       if (rowType == null) {
+        // rowType will be null for custom tables
         this.rowType = CsvSortedTableSchema.getRowType(source);
       }
       try (CSVReader reader = openCsv(source)) {
@@ -95,13 +112,13 @@ public class CsvSortedTable<E> implements Map<E, E>, Configurable {
         List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
         //noinspection unchecked
         RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
-        String[] row = reader.readNext();
-        while (row != null) {
-          E elem = rowConverter.convertRow(row);
-          E keyArray = (E) SortedTable.getKey(elem);
-          E valueArray = (E) SortedTable.getValue(elem);
+        strings = reader.readNext();
+        while (strings != null) {
+          E row = rowConverter.convertRow(strings);
+          E keyArray = (E) SortedTable.getKey(row);
+          E valueArray = (E) SortedTable.getValue(row);
           rows.put(keyArray, valueArray);
-          row = reader.readNext();
+          strings = reader.readNext();
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -252,131 +269,6 @@ public class CsvSortedTable<E> implements Map<E, E>, Configurable {
     public Object convertRow(String[] strings) {
       return convert(fieldType, strings[fieldIndex]);
     }
-  }
-
-  @Override
-  public int size() {
-    return rows.size();
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return rows.isEmpty();
-  }
-
-  @Override
-  public boolean containsKey(Object key) {
-    return rows.containsKey(key);
-  }
-
-  @Override
-  public boolean containsValue(Object value) {
-    return rows.containsValue(value);
-  }
-
-  @Override
-  public E get(Object key) {
-    return rows.get(key);
-  }
-
-  @Override
-  public E put(E key, E value) {
-    return rows.put(key, value);
-  }
-
-  @Override
-  public E remove(Object key) {
-    return rows.remove(key);
-  }
-
-  @Override
-  public void putAll(Map<? extends E, ? extends E> m) {
-    rows.putAll(m);
-  }
-
-  @Override
-  public void clear() {
-    rows.clear();
-  }
-
-  @Override
-  public Set<E> keySet() {
-    return rows.keySet();
-  }
-
-  @Override
-  public Collection<E> values() {
-    return rows.values();
-  }
-
-  @Override
-  public Set<Entry<E, E>> entrySet() {
-    return rows.entrySet();
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    return rows.equals(o);
-  }
-
-  @Override
-  public int hashCode() {
-    return rows.hashCode();
-  }
-
-  @Override
-  public E getOrDefault(Object key, E defaultValue) {
-    return rows.getOrDefault(key, defaultValue);
-  }
-
-  @Override
-  public void forEach(BiConsumer<? super E, ? super E> action) {
-    rows.forEach(action);
-  }
-
-  @Override
-  public void replaceAll(BiFunction<? super E, ? super E, ? extends E> function) {
-    rows.replaceAll(function);
-  }
-
-  @Override
-  public E putIfAbsent(E key, E value) {
-    return rows.putIfAbsent(key, value);
-  }
-
-  @Override
-  public boolean remove(Object key, Object value) {
-    return rows.remove(key, value);
-  }
-
-  @Override
-  public boolean replace(E key, E oldValue, E newValue) {
-    return rows.replace(key, oldValue, newValue);
-  }
-
-  @Override
-  public E replace(E key, E value) {
-    return rows.replace(key, value);
-  }
-
-  @Override
-  public E computeIfAbsent(E key, Function<? super E, ? extends E> mappingFunction) {
-    return rows.computeIfAbsent(key, mappingFunction);
-  }
-
-  @Override
-  public E computeIfPresent(E key, BiFunction<? super E, ? super E, ? extends E> remappingFunction) {
-    return rows.computeIfPresent(key, remappingFunction);
-  }
-
-  @Override
-  public E compute(E key, BiFunction<? super E, ? super E, ? extends E> remappingFunction) {
-    return rows.compute(key, remappingFunction);
-  }
-
-  @Override
-  public E merge(E key, E value, BiFunction<? super E, ? super E, ? extends E> remappingFunction) {
-    return rows.merge(key, value, remappingFunction);
   }
 }
 
