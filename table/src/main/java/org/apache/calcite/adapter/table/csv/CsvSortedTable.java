@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.table;
+package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
+import org.apache.calcite.adapter.table.SortedTable;
+import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.utils.Bytes;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -35,6 +40,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Spliterator;
 import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -46,11 +52,11 @@ import java.util.stream.Stream;
  *
  * @param <E> Row type
  */
-public class CsvSortedTable<E> implements Collection<E> {
-  protected List<String> names;
-  protected List<SortedTableColumnType> fieldTypes;
-  protected Collection<E> rows;
-  protected RelDataType rowType;
+public class CsvSortedTable<E> implements Collection<E>, Configurable {
+  private List<String> names;
+  private List<SortedTableColumnType> fieldTypes;
+  private Collection<E> rows;
+  private RelDataType rowType;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -65,13 +71,27 @@ public class CsvSortedTable<E> implements Collection<E> {
   }
 
   /** Creates a CsvTable. */
-  CsvSortedTable(Source source, RelDataType rowType) {
+  public CsvSortedTable(RelDataType rowType) {
     this.rows = new CopyOnWriteArrayList<>();
-    this.rowType = rowType != null ? rowType : CsvSortedTableSchema.getRowType(source);
-    if (source != null) {
+    this.rowType = rowType;
+  }
+
+  public RelDataType getRowType() {
+    return rowType;
+  }
+
+  @Override
+  public void configure(Map<String, ?> operand) {
+    String fileName = (String) operand.get("file");
+    if (fileName != null) {
+      final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+      final Source source = base != null ? Sources.file(base, fileName) : Sources.of(new File(fileName));
+      if (rowType == null) {
+        this.rowType = CsvSortedTableSchema.getRowType(source);
+      }
       try (CSVReader reader = openCsv(source)) {
         String[] strings = reader.readNext(); // skip header row
-        List<SortedTableColumnType> fieldTypes = getFieldTypes();
+        List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
         //noinspection unchecked
         RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
         String[] row = reader.readNext();
@@ -90,7 +110,7 @@ public class CsvSortedTable<E> implements Collection<E> {
     return new CSVReader(fileReader);
   }
 
-  private List<SortedTableColumnType> getFieldTypes() {
+  private static List<SortedTableColumnType> getFieldTypes(RelDataType rowType) {
     final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
     for (RelDataTypeField field : rowType.getFieldList()) {
       fieldTypes.add(SortedTableColumnType.of(field.getType().getSqlTypeName()));
@@ -196,7 +216,7 @@ public class CsvSortedTable<E> implements Collection<E> {
   }
 
   /** Array row converter. */
-  static class ArrayRowConverter extends RowConverter<Object[]> {
+  private static class ArrayRowConverter extends RowConverter<Object[]> {
     private final SortedTableColumnType[] fieldTypes;
     private final int[] fields;
 

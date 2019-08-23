@@ -35,7 +35,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
@@ -60,6 +59,7 @@ import org.apache.calcite.util.Util;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -124,7 +124,7 @@ public class SqlCreateTable extends SqlCreate
     }
     final RelDataType rowType = builder.build();
     SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
-    schemaPlus.add(name.getSimple(), schemaPlus.createTable(null, rowType));
+    schemaPlus.add(name.getSimple(), schemaPlus.createTable(Collections.emptyMap(), rowType));
     //schema.add(name.getSimple(),
     //    new MutableArrayTable(name.getSimple(),
     //        RelDataTypeImpl.proto(rowType)));

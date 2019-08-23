@@ -18,7 +18,7 @@ package org.apache.calcite.adapter.table;
 
 import com.google.common.collect.Iterators;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.adapter.table.csv.CsvSortedTable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -37,14 +37,11 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Base class for table that reads CSV files.
@@ -54,14 +51,15 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   protected final Collection<?> rows;
 
   /** Creates a CsvTable. */
-  SortedTable(Source source, RelDataType rowType) {
+  SortedTable(Map<String, Object> operand, RelDataType rowType) {
     super(Object[].class);
-    CsvSortedTable<?> csvTable = new CsvSortedTable<>(source, rowType);
+    CsvSortedTable<?> csvTable = new CsvSortedTable<>(rowType);
+    csvTable.configure(operand);
     this.rows = csvTable;
-    this.rowType = csvTable.rowType;
+    this.rowType = csvTable.getRowType();
   }
 
-  protected int size() {
+  public int size() {
     return rowType.getFieldList().size();
   }
 
@@ -99,7 +97,10 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
   @Override
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    RelProtoDataType protoRowType = rowType != null ? RelDataTypeImpl.proto(rowType) : null;
+    if (rowType == null) {
+        return null;
+    }
+    RelProtoDataType protoRowType = RelDataTypeImpl.proto(rowType);
     return protoRowType.apply(typeFactory);
   }
 
@@ -109,7 +110,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   }
 
   /** Returns an array of integers {0, ..., n - 1}. */
-  static int[] identityList(int n) {
+  public static int[] identityList(int n) {
     int[] integers = new int[n];
     for (int i = 0; i < n; i++) {
       integers[i] = i;
@@ -117,7 +118,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
-  class ArrayComparator<T extends Comparable<T>> implements Comparator<T[]> {
+  static class ArrayComparator<T extends Comparable<T>> implements Comparator<T[]> {
 
     @Override
     public int compare(T[] o1, T[] o2) {

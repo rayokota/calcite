@@ -17,50 +17,41 @@
 package org.apache.calcite.adapter.table;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.util.Base64;
-import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.adapter.table.csv.CsvSortedTableSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
-import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.common.Configurable;
 
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
 public class SortedTableSchema extends AbstractSchema {
-  private SortedTable.Flavor flavor;
-  private Map<String, Table> tableMap;
+  private final SortedTable.Flavor flavor;
+  private final Map<String, Table> tableMap;
 
   /**
    * Creates a CSV schema.
-   *
-   * @param directoryFile Directory that holds {@code .csv} files
-   * @param flavor     Whether to instantiate flavor tables that undergo
-   *                   query optimization
    */
-  public SortedTableSchema(File directoryFile, SortedTable.Flavor flavor) {
+  public SortedTableSchema(Map<String, Object> operand) {
     super();
-    this.flavor = flavor;
-    this.tableMap = new CsvSortedTableSchema(directoryFile, flavor);
+    String flavorName = (String) operand.get("flavor");
+    if (flavorName == null) {
+      this.flavor = SortedTable.Flavor.SCANNABLE;
+    } else {
+      this.flavor = SortedTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
+    }
+    this.tableMap = new CsvSortedTableSchema(this);
+    ((Configurable) tableMap).configure(operand);
   }
 
   public void add(String name, Table table) {
@@ -87,19 +78,19 @@ public class SortedTableSchema extends AbstractSchema {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public Table createTable(Source source, RelDataType rowType) {
-      return createTable(source, rowType, flavor);
+  public SortedTable createTable(Map<String, Object> operand, RelDataType rowType) {
+    return createTable(operand, rowType, flavor);
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */
-  public static Table createTable(Source source, RelDataType rowType, SortedTable.Flavor flavor) {
+  public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType, SortedTable.Flavor flavor) {
     switch (flavor) {
     case TRANSLATABLE:
-      return new SortedTranslatableTable(source, rowType);
+      return new SortedTranslatableTable(operand, rowType);
     case SCANNABLE:
-      return new SortedScannableTable(source, rowType);
+      return new SortedScannableTable(operand, rowType);
     case FILTERABLE:
-      return new SortedFilterableTable(source, rowType);
+      return new SortedFilterableTable(operand, rowType);
     default:
       throw new AssertionError("Unknown flavor " + flavor);
     }

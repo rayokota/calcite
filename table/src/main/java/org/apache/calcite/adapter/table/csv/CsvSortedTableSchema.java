@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.table;
+package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
+import org.apache.calcite.adapter.table.SortedTableColumnType;
+import org.apache.calcite.adapter.table.SortedTableSchema;
+import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
+import org.apache.kafka.common.Configurable;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -43,20 +44,29 @@ import java.util.function.Function;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class CsvSortedTableSchema implements Map<String, Table> {
-  private final File directoryFile;
-  private SortedTable.Flavor flavor;
+public class CsvSortedTableSchema implements Map<String, Table>, Configurable {
+  private final SortedTableSchema schema;
   private final Map<String, Table> tableMap;
+  private File directoryFile;
 
   /**
    * Creates a CSV schema.
-   *
-   * @param directoryFile Directory that holds {@code .csv} files
    */
-  public CsvSortedTableSchema(File directoryFile, SortedTable.Flavor flavor) {
-    this.directoryFile = directoryFile;
-    this.flavor = flavor;
+  public CsvSortedTableSchema(SortedTableSchema schema) {
+    this.schema = schema;
     this.tableMap = new HashMap<>();
+  }
+
+  @Override
+  public void configure(Map<String, ?> operand) {
+    final String directory = (String) operand.get("directory");
+    final File base =
+            (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    File directoryFile = new File(directory);
+    if (base != null && !directoryFile.isAbsolute()) {
+      directoryFile = new File(base, directory);
+    }
+    this.directoryFile = directoryFile;
     init();
   }
 
@@ -94,7 +104,9 @@ public class CsvSortedTableSchema implements Map<String, Table> {
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
-        final Table table = SortedTableSchema.createTable(source, getRowType(source), flavor);
+        Map<String, Object> operand = new HashMap<>();
+        operand.put("file", source.path());
+        final Table table = schema.createTable(operand, getRowType(source));
         tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
       }
     }

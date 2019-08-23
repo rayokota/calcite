@@ -22,16 +22,15 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.util.Source;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -43,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedFilterableTable extends SortedTable
     implements FilterableTable {
   /** Creates a CsvFilterableTable. */
-  public SortedFilterableTable(Source source, RelDataType rowType) {
-    super(source, rowType);
+  public SortedFilterableTable(Map<String, Object> operand, RelDataType rowType) {
+    super(operand, rowType);
   }
 
   public String toString() {
