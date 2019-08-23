@@ -307,7 +307,6 @@ public class SortedTableTest {
     sql("smart", "select name, empno from EMPS")
         .returns("NAME=Fred; EMPNO=100",
             "NAME=Eric; EMPNO=110",
-            "NAME=John; EMPNO=110",
             "NAME=Wilma; EMPNO=120",
             "NAME=Alice; EMPNO=130")
         .ok();
@@ -359,9 +358,9 @@ public class SortedTableTest {
   /** Filter that can be fully handled by SortedFilterableTable. */
   @Test public void testFilterableWhere() throws SQLException {
     final String sql =
-        "select empno, gender, name from EMPS where name = 'John'";
+        "select empno, gender, name from EMPS where name = 'Eric'";
     sql("filterable-model", sql)
-        .returns("EMPNO=110; GENDER=M; NAME=John").ok();
+        .returns("EMPNO=110; GENDER=M; NAME=Eric").ok();
   }
 
   /** Filter that can be partly handled by SortedFilterableTable. */
@@ -529,7 +528,6 @@ public class SortedTableTest {
         + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
     sql("model", sql)
         .returnsUnordered("C=1; T=1996-08-04",
-            "C=1; T=2002-05-04",
             "C=1; T=2005-09-08",
             "C=1; T=2007-01-02",
             "C=1; T=2001-01-02")
@@ -539,8 +537,7 @@ public class SortedTableTest {
         + "  {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
         + "from EMPS group by {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT ) } ";
     sql("model", sql2)
-        .returnsUnordered("C=1; T=2002-06-03",
-            "C=1; T=2005-10-07",
+        .returnsUnordered("C=1; T=2005-10-07",
             "C=1; T=2007-02-01",
             "C=1; T=2001-02-01",
             "C=1; T=1996-09-03")

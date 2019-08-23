@@ -17,9 +17,6 @@
 package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.TreeMultimap;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.avatica.util.Base64;
@@ -45,16 +42,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Base class for table that reads CSV files.
  *
  * @param <E> Row type
  */
-public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
+public class CsvSortedTable<E> implements Map<E, E>, Configurable {
   private List<String> names;
   private List<SortedTableColumnType> fieldTypes;
-  private Multimap<E, E> rows;
+  private Map<E, E> rows;
   private RelDataType rowType;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
@@ -71,7 +72,7 @@ public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
 
   /** Creates a CsvTable. */
   public CsvSortedTable(RelDataType rowType) {
-    this.rows = TreeMultimap.create(new SortedTable.MultimapComparator(), new SortedTable.MultimapComparator());
+    this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
     this.rowType = rowType;
   }
 
@@ -79,6 +80,7 @@ public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
     return rowType;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public void configure(Map<String, ?> operand) {
     String fileName = (String) operand.get("file");
@@ -263,48 +265,33 @@ public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
   }
 
   @Override
-  public boolean containsKey(Object o) {
-    return rows.containsKey(o);
+  public boolean containsKey(Object key) {
+    return rows.containsKey(key);
   }
 
   @Override
-  public boolean containsValue(Object o) {
-    return rows.containsValue(o);
+  public boolean containsValue(Object value) {
+    return rows.containsValue(value);
   }
 
   @Override
-  public boolean containsEntry(Object o, Object o1) {
-    return rows.containsEntry(o, o1);
+  public E get(Object key) {
+    return rows.get(key);
   }
 
   @Override
-  public boolean put(E e, E e2) {
-    return rows.put(e, e2);
+  public E put(E key, E value) {
+    return rows.put(key, value);
   }
 
   @Override
-  public boolean remove(Object o, Object o1) {
-    return rows.remove(o, o1);
+  public E remove(Object key) {
+    return rows.remove(key);
   }
 
   @Override
-  public boolean putAll(E e, Iterable<? extends E> iterable) {
-    return rows.putAll(e, iterable);
-  }
-
-  @Override
-  public boolean putAll(Multimap<? extends E, ? extends E> multimap) {
-    return rows.putAll(multimap);
-  }
-
-  @Override
-  public Collection<E> replaceValues(E e, Iterable<? extends E> iterable) {
-    return rows.replaceValues(e, iterable);
-  }
-
-  @Override
-  public Collection<E> removeAll(Object o) {
-    return rows.removeAll(o);
+  public void putAll(Map<? extends E, ? extends E> m) {
+    rows.putAll(m);
   }
 
   @Override
@@ -313,18 +300,8 @@ public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
   }
 
   @Override
-  public Collection<E> get(E e) {
-    return rows.get(e);
-  }
-
-  @Override
   public Set<E> keySet() {
     return rows.keySet();
-  }
-
-  @Override
-  public Multiset<E> keys() {
-    return rows.keys();
   }
 
   @Override
@@ -333,13 +310,73 @@ public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
   }
 
   @Override
-  public Collection<Map.Entry<E, E>> entries() {
-    return rows.entries();
+  public Set<Entry<E, E>> entrySet() {
+    return rows.entrySet();
   }
 
   @Override
-  public Map<E, Collection<E>> asMap() {
-    return rows.asMap();
+  public boolean equals(Object o) {
+    return rows.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return rows.hashCode();
+  }
+
+  @Override
+  public E getOrDefault(Object key, E defaultValue) {
+    return rows.getOrDefault(key, defaultValue);
+  }
+
+  @Override
+  public void forEach(BiConsumer<? super E, ? super E> action) {
+    rows.forEach(action);
+  }
+
+  @Override
+  public void replaceAll(BiFunction<? super E, ? super E, ? extends E> function) {
+    rows.replaceAll(function);
+  }
+
+  @Override
+  public E putIfAbsent(E key, E value) {
+    return rows.putIfAbsent(key, value);
+  }
+
+  @Override
+  public boolean remove(Object key, Object value) {
+    return rows.remove(key, value);
+  }
+
+  @Override
+  public boolean replace(E key, E oldValue, E newValue) {
+    return rows.replace(key, oldValue, newValue);
+  }
+
+  @Override
+  public E replace(E key, E value) {
+    return rows.replace(key, value);
+  }
+
+  @Override
+  public E computeIfAbsent(E key, Function<? super E, ? extends E> mappingFunction) {
+    return rows.computeIfAbsent(key, mappingFunction);
+  }
+
+  @Override
+  public E computeIfPresent(E key, BiFunction<? super E, ? super E, ? extends E> remappingFunction) {
+    return rows.computeIfPresent(key, remappingFunction);
+  }
+
+  @Override
+  public E compute(E key, BiFunction<? super E, ? super E, ? extends E> remappingFunction) {
+    return rows.compute(key, remappingFunction);
+  }
+
+  @Override
+  public E merge(E key, E value, BiFunction<? super E, ? super E, ? extends E> remappingFunction) {
+    return rows.merge(key, value, remappingFunction);
   }
 }
 

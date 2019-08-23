@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.table;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.ObjectArrays;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.table.csv.CsvSortedTable;
@@ -52,8 +51,8 @@ import java.util.stream.Collectors;
  * Base class for table that reads CSV files.
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
-  protected final RelDataType rowType;
-  protected final Multimap<?, ?> rows;
+  private final RelDataType rowType;
+  private final Map<?, ?> rows;
 
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType) {
@@ -82,7 +81,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   }
 
   @Override public Collection getModifiableCollection() {
-    return new MultimapWrapper((Multimap<Object, Object>) rows);
+    return new MapWrapper((Map<Object, Object>) rows);
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -123,15 +122,17 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
+  // TODO fix to get use RelDataType
   public static Object getKey(Object o) {
     return o.getClass().isArray() ? new Comparable[]{(Comparable) ((Object[]) o)[0]} : o;
   }
 
+  // TODO fix to get use RelDataType
   public static Object getValue(Object o) {
     return o.getClass().isArray() ? Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class) : o;
   }
 
-  public static class MultimapComparator implements Comparator {
+  public static class MapComparator implements Comparator {
     private final Comparator defaultComparator = Comparator.nullsFirst(Comparator.naturalOrder());
 
     @Override
@@ -145,7 +146,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   }
 
   static class ArrayComparator<T extends Comparable<T>> implements Comparator<T[]> {
-    private final Comparator defaultComparator = Comparator.nullsFirst(Comparator.naturalOrder());
+    private final Comparator<T> defaultComparator = Comparator.<T>nullsFirst(Comparator.<T>naturalOrder());
 
     @Override
     public int compare(T[] o1, T[] o2) {
@@ -159,11 +160,11 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
   }
 
-  static class MultimapWrapper implements Collection {
+  static class MapWrapper implements Collection {
 
-    private Multimap<Object, Object> map;
+    private final Map<Object, Object> map;
 
-    public MultimapWrapper(Multimap<Object, Object> map) {
+    public MapWrapper(Map<Object, Object> map) {
       this.map = map;
     }
 
@@ -234,7 +235,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
 
     private List toList() {
-      return map.entries().stream()
+      return map.entrySet().stream()
               .map(entry -> {
                 if (entry.getKey().getClass().isArray()) {
                   return ObjectArrays.concat((Object[]) entry.getKey(), (Object[]) entry.getValue(), Object.class);
