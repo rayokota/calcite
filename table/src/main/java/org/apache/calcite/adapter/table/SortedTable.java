@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.table;
 
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.ObjectArrays;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.table.csv.CsvSortedTable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -38,17 +40,20 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Base class for table that reads CSV files.
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   protected final RelDataType rowType;
-  protected final Collection<?> rows;
+  protected final Multimap<?, ?> rows;
 
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType) {
@@ -77,7 +82,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   }
 
   @Override public Collection getModifiableCollection() {
-    return rows;
+    return new MultimapWrapper((Multimap<Object, Object>) rows);
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -86,7 +91,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
       public Enumerator<T> enumerator() {
         //noinspection unchecked
         return (Enumerator<T>) Linq4j.iterableEnumerator(
-                () -> Iterators.transform(rows.iterator(), SortedTable::toRow));
+                () -> Iterators.transform(getModifiableCollection().iterator(), SortedTable::toRow));
       }
     };
   }
@@ -118,19 +123,127 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
+  public static Object getKey(Object o) {
+    return o.getClass().isArray() ? new Comparable[]{(Comparable) ((Object[]) o)[0]} : o;
+  }
+
+  public static Object getValue(Object o) {
+    return o.getClass().isArray() ? Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class) : o;
+  }
+
+  public static class MultimapComparator implements Comparator {
+    private final Comparator defaultComparator = Comparator.nullsFirst(Comparator.naturalOrder());
+
+    @Override
+    public int compare(Object o1, Object o2) {
+      if (o1.getClass().isArray()) {
+        return new ArrayComparator().compare((Comparable[]) o1, (Comparable[]) o2);
+      } else {
+        return defaultComparator.compare(o1, o2);
+      }
+    }
+  }
+
   static class ArrayComparator<T extends Comparable<T>> implements Comparator<T[]> {
+    private final Comparator defaultComparator = Comparator.nullsFirst(Comparator.naturalOrder());
 
     @Override
     public int compare(T[] o1, T[] o2) {
       for (int i = 0; i < Math.min(o1.length, o2.length); i++) {
-        int c = o1[i].compareTo(o2[i]);
+        int c = defaultComparator.compare(o1[i], o2[i]);
         if (c != 0) {
           return c;
         }
       }
       return Integer.compare(o1.length, o2.length);
     }
+  }
 
+  static class MultimapWrapper implements Collection {
+
+    private Multimap<Object, Object> map;
+
+    public MultimapWrapper(Multimap<Object, Object> map) {
+      this.map = map;
+    }
+
+    @Override
+    public int size() {
+      return map.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return map.isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+      return map.containsKey(getKey(o));
+    }
+
+    @Override
+    public Iterator iterator() {
+      return toList().iterator();
+    }
+
+    @Override
+    public Object[] toArray() {
+      return toList().toArray();
+    }
+
+    @Override
+    public Object[] toArray(Object[] a) {
+      return toList().toArray(a);
+    }
+
+    @Override
+    public boolean add(Object o) {
+      map.put(getKey(o), getValue(o));
+      return true;
+    }
+
+    @Override
+    public boolean remove(Object o) {
+      return map.remove(getKey(o), getValue(o));
+    }
+
+    @Override
+    public boolean containsAll(Collection c) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean addAll(Collection c) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeAll(Collection c) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean retainAll(Collection c) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clear() {
+      map.clear();
+    }
+
+    private List toList() {
+      return map.entries().stream()
+              .map(entry -> {
+                if (entry.getKey().getClass().isArray()) {
+                  return ObjectArrays.concat((Object[]) entry.getKey(), (Object[]) entry.getValue(), Object.class);
+                } else {
+                  return entry.getKey();
+                }
+              })
+              .collect(Collectors.toList());
+    }
   }
 }
 

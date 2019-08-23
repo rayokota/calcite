@@ -57,7 +57,7 @@ public class SortedTranslatableTable extends SortedTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new SortedTableEnumerator<>(rows.iterator(), cancelFlag, null, fields);
+        return new SortedTableEnumerator<>(getModifiableCollection().iterator(), cancelFlag, null, fields);
       }
     };
   }

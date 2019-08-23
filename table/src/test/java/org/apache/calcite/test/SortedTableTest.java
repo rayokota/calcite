@@ -256,6 +256,10 @@ public class SortedTableTest {
     sql("smart", "select name from DEPTS").ok();
   }
 
+  @Test public void testSelectSingleColumnProject() throws SQLException {
+    sql("smart", "select deptno from DEPTNOS").ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-898">[CALCITE-898]
    * Type inference multiplying Java long by SQL INTEGER</a>. */

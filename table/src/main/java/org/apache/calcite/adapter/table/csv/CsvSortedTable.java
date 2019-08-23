@@ -17,6 +17,9 @@
 package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.TreeMultimap;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.avatica.util.Base64;
@@ -38,24 +41,20 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Spliterator;
+import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 /**
  * Base class for table that reads CSV files.
  *
  * @param <E> Row type
  */
-public class CsvSortedTable<E> implements Collection<E>, Configurable {
+public class CsvSortedTable<E> implements Multimap<E, E>, Configurable {
   private List<String> names;
   private List<SortedTableColumnType> fieldTypes;
-  private Collection<E> rows;
+  private Multimap<E, E> rows;
   private RelDataType rowType;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
@@ -72,7 +71,7 @@ public class CsvSortedTable<E> implements Collection<E>, Configurable {
 
   /** Creates a CsvTable. */
   public CsvSortedTable(RelDataType rowType) {
-    this.rows = new CopyOnWriteArrayList<>();
+    this.rows = TreeMultimap.create(new SortedTable.MultimapComparator(), new SortedTable.MultimapComparator());
     this.rowType = rowType;
   }
 
@@ -96,7 +95,10 @@ public class CsvSortedTable<E> implements Collection<E>, Configurable {
         RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
         String[] row = reader.readNext();
         while (row != null) {
-          rows.add(rowConverter.convertRow(row));
+          E elem = rowConverter.convertRow(row);
+          E keyArray = (E) SortedTable.getKey(elem);
+          E valueArray = (E) SortedTable.getValue(elem);
+          rows.put(keyArray, valueArray);
           row = reader.readNext();
         }
       } catch (IOException e) {
@@ -261,58 +263,48 @@ public class CsvSortedTable<E> implements Collection<E>, Configurable {
   }
 
   @Override
-  public boolean contains(Object o) {
-    return rows.contains(o);
+  public boolean containsKey(Object o) {
+    return rows.containsKey(o);
   }
 
   @Override
-  public Iterator<E> iterator() {
-    return rows.iterator();
+  public boolean containsValue(Object o) {
+    return rows.containsValue(o);
   }
 
   @Override
-  public Object[] toArray() {
-    return rows.toArray();
+  public boolean containsEntry(Object o, Object o1) {
+    return rows.containsEntry(o, o1);
   }
 
   @Override
-  public <T> T[] toArray(T[] a) {
-    return rows.toArray(a);
+  public boolean put(E e, E e2) {
+    return rows.put(e, e2);
   }
 
   @Override
-  public boolean add(E o) {
-    return rows.add(o);
+  public boolean remove(Object o, Object o1) {
+    return rows.remove(o, o1);
   }
 
   @Override
-  public boolean remove(Object o) {
-    throw new UnsupportedOperationException();
+  public boolean putAll(E e, Iterable<? extends E> iterable) {
+    return rows.putAll(e, iterable);
   }
 
   @Override
-  public boolean containsAll(Collection<?> c) {
-    return rows.containsAll(c);
+  public boolean putAll(Multimap<? extends E, ? extends E> multimap) {
+    return rows.putAll(multimap);
   }
 
   @Override
-  public boolean addAll(Collection<? extends E> c) {
-    throw new UnsupportedOperationException();
+  public Collection<E> replaceValues(E e, Iterable<? extends E> iterable) {
+    return rows.replaceValues(e, iterable);
   }
 
   @Override
-  public boolean removeAll(Collection<?> c) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean removeIf(Predicate<? super E> filter) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean retainAll(Collection<?> c) {
-    throw new UnsupportedOperationException();
+  public Collection<E> removeAll(Object o) {
+    return rows.removeAll(o);
   }
 
   @Override
@@ -321,28 +313,33 @@ public class CsvSortedTable<E> implements Collection<E>, Configurable {
   }
 
   @Override
-  public boolean equals(Object o) {
-    return rows.equals(o);
+  public Collection<E> get(E e) {
+    return rows.get(e);
   }
 
   @Override
-  public int hashCode() {
-    return rows.hashCode();
+  public Set<E> keySet() {
+    return rows.keySet();
   }
 
   @Override
-  public Spliterator<E> spliterator() {
-    return rows.spliterator();
+  public Multiset<E> keys() {
+    return rows.keys();
   }
 
   @Override
-  public Stream<E> stream() {
-    return rows.stream();
+  public Collection<E> values() {
+    return rows.values();
   }
 
   @Override
-  public Stream<E> parallelStream() {
-    return rows.parallelStream();
+  public Collection<Map.Entry<E, E>> entries() {
+    return rows.entries();
+  }
+
+  @Override
+  public Map<E, Collection<E>> asMap() {
+    return rows.asMap();
   }
 }
 
