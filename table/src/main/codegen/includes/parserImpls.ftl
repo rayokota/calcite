@@ -99,6 +99,36 @@ void Option(List<SqlNode> list) :
     }
 }
 
+Pair<List<SqlAlterTable.Action>, SqlNodeList> AlterTableElementList() :
+{
+    final List<SqlAlterTable.Action> actions = new ArrayList<SqlAlterTable.Action>();
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    AlterTableElement(actions, list)
+    (
+        <COMMA> AlterTableElement(actions, list)
+    )*
+    {
+        return Pair.of(actions, new SqlNodeList(list, Span.of(list).pos()));
+    }
+}
+
+void AlterTableElement(List<SqlAlterTable.Action> actions, List<SqlNode> list) :
+{
+    final SqlIdentifier id;
+}
+{
+    <ADD> { actions.add(SqlAlterTable.Action.ADD); }
+    TableElement(list)
+    |
+    <ALTER> { actions.add(SqlAlterTable.Action.ALTER); }
+    TableElement(list)
+    |
+    <DROP> { actions.add(SqlAlterTable.Action.DROP); }
+    id = SimpleIdentifier() { list.add(id); }
+}
+
 SqlNodeList TableElementList() :
 {
     final Span s;
@@ -219,6 +249,20 @@ void AttributeDef(List<SqlNode> list) :
     {
         list.add(SqlDdlNodes.attribute(s.add(id).end(this), id,
             type.withNullable(nullable), e, null));
+    }
+}
+
+SqlAlterTable SqlAlterTable(Span s) :
+{
+    final boolean ifExists;
+    final SqlIdentifier id;
+    Pair<List<SqlAlterTable.Action>, SqlNodeList> tableElementList = null;
+}
+{
+    <TABLE> ifExists = IfExistsOpt() id = CompoundIdentifier()
+    [ tableElementList = AlterTableElementList() ]
+    {
+        return new SqlAlterTable(s.end(this), ifExists, id, tableElementList.left, tableElementList.right);
     }
 }
 
