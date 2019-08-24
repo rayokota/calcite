@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -51,9 +52,8 @@ import java.util.TreeMap;
  * @param <E> Row type
  */
 public class CsvTable<E> extends AbstractTable<E> {
+  private SortedTable sortedTable;
   private final Map<E, E> rows;
-  private RelDataType rowType;
-  private final List<String> keyFields;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -68,15 +68,14 @@ public class CsvTable<E> extends AbstractTable<E> {
   }
 
   /** Creates a CsvTable. */
-  public CsvTable(RelDataType rowType, List<String> keyFields) {
+  public CsvTable(SortedTable sortedTable) {
+    this.sortedTable = sortedTable;
     this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
-    this.rowType = rowType;
-    this.keyFields = keyFields;
   }
 
   @Override
   public RelDataType getRowType() {
-    return rowType;
+    return sortedTable.getRowType();
   }
 
   @Override
@@ -90,10 +89,13 @@ public class CsvTable<E> extends AbstractTable<E> {
     final String fileName = (String) operand.get("file");
     final Source source = getSource(operand, fileName);
     if (source != null) {
+      RelDataType rowType = sortedTable.getRowType();
       if (rowType == null) {
         // rowType will be null for custom tables
-        this.rowType = CsvTableSchema.getRowType(source);
+        rowType = CsvTableSchema.getRowType(source);
+        sortedTable.setRowType(rowType);
       }
+      Collection<E> modifiableCollection = (Collection<E>) sortedTable.getModifiableCollection();
       try (CSVReader reader = openCsv(source)) {
         reader.readNext(); // skip header row
         List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
@@ -102,8 +104,7 @@ public class CsvTable<E> extends AbstractTable<E> {
         String[] strings = reader.readNext();
         while (strings != null) {
           E row = rowConverter.convertRow(strings);
-          Pair<E, E> keyValue = (Pair<E, E>) SortedTable.getKeyValue(row, rowType, keyFields);
-          rows.put(keyValue.left, keyValue.right);
+          modifiableCollection.add(row);
           strings = reader.readNext();
         }
       } catch (IOException e) {

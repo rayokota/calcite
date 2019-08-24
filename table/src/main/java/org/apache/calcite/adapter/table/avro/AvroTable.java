@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -54,22 +55,20 @@ import java.util.TreeMap;
  * @param <E> Row type
  */
 public class AvroTable<E> extends AbstractTable<E> {
+  private SortedTable sortedTable;
   private final Map<E, E> rows;
-  private RelDataType rowType;
-  private final List<String> keyFields;
 
   private final DecoderFactory decoderFactory = DecoderFactory.get();
 
   /** Creates a CsvTable. */
-  public AvroTable(RelDataType rowType, List<String> keyFields) {
+  public AvroTable(SortedTable sortedTable) {
+    this.sortedTable = sortedTable;
     this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
-    this.rowType = rowType;
-    this.keyFields = keyFields;
   }
 
   @Override
   public RelDataType getRowType() {
-    return rowType;
+    return sortedTable.getRowType();
   }
 
   @Override
@@ -79,26 +78,29 @@ public class AvroTable<E> extends AbstractTable<E> {
 
   @Override
   public void configure(Map<String, ?> operand) {
-    if (rowType == null) {
+    if (sortedTable.getRowType() == null) {
       // TODO support custom tables
       throw new IllegalStateException("Custom tables not yet supported for Avro");
     }
     try {
       Schema schema = (Schema) operand.get("schema");
+      Collection<E> modifiableCollection = (Collection<E>) sortedTable.getModifiableCollection();
       DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
       Source json = getSource(operand, schema.getName() + ".json");
       if (json != null) {
         BufferedReader reader = Files.newBufferedReader(Paths.get(json.path()));
         String line;
         while ((line = reader.readLine()) != null) {
-          addRow(datumReader.read(null, decoderFactory.jsonDecoder(schema, line)));
+          E row = convertRow(datumReader.read(null, decoderFactory.jsonDecoder(schema, line)));
+          modifiableCollection.add(row);
         }
       }
       Source avro = getSource(operand, schema.getName() + ".avro");
       if (avro != null) {
         DataFileReader<GenericRecord> dataFileReader = new DataFileReader<GenericRecord>(avro.file(), datumReader);
         for (GenericRecord record : dataFileReader) {
-          addRow(record);
+          E row = convertRow(record);
+          modifiableCollection.add(row);
         }
       }
     } catch (IOException e) {
@@ -121,13 +123,6 @@ public class AvroTable<E> extends AbstractTable<E> {
     }
     File file = path.toFile();
     return file.exists() ? Sources.of(path.toFile()) : null;
-  }
-
-  @SuppressWarnings("unchecked")
-  private void addRow(GenericRecord record) {
-    E row = convertRow(record);
-    Pair<E, E> keyValue = (Pair<E, E>) SortedTable.getKeyValue(row, rowType, keyFields);
-    rows.put(keyValue.left, keyValue.right);
   }
 
   @SuppressWarnings("unchecked")

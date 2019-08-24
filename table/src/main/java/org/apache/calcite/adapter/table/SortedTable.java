@@ -17,14 +17,6 @@
 package org.apache.calcite.adapter.table;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.ObjectArrays;
-import org.apache.avro.Schema;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.EncoderFactory;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.table.avro.AvroTable;
 import org.apache.calcite.adapter.table.csv.CsvTable;
@@ -40,7 +32,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
@@ -49,7 +40,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.Pair;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -65,9 +55,11 @@ import java.util.stream.Collectors;
  * Base class for table that reads CSV files.
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
-  private final RelDataType rowType;
+  private RelDataType rowType;
   private final AbstractTable<?> rows;
   private final List<String> keyFields;
+  private int[] permutation;
+  private int[] inverse;
 
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
@@ -77,18 +69,54 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     AbstractTable<?> rows = null;
     switch (kind) {
       case AVRO:
-        rows = new AvroTable<>(rowType, keyFields);
+        rows = new AvroTable<>(this);
         break;
       case CSV:
-        rows = new CsvTable<>(rowType, keyFields);
+        rows = new CsvTable<>(this);
         break;
       default:
         throw new IllegalArgumentException("Unsupported kind " + kind);
     }
-    rows.configure(operand);
-    this.rows = rows;
-    this.rowType = rows.getRowType();
+    this.rowType = rowType;
     this.keyFields = keyFields;
+    this.rows = rows;
+    rows.configure(operand);
+  }
+
+  private int[] getPermutation() {
+    if (permutation == null) {
+      int size = rowType.getFieldCount();
+      if (keyFields.isEmpty()) {
+        return identityList(size);
+      }
+      int[] result = new int[size];
+      Set<Integer> keyIndices = new HashSet<>();
+      int index = 0;
+      for (String keyField : keyFields) {
+        keyIndices.add(index);
+        result[index++] = rowType.getField(keyField, true, false).getIndex();
+      }
+      for (int i = 0; i < size; i++) {
+        if (!keyIndices.contains(i)) {
+          result[index++] = i;
+        }
+      }
+      permutation = result;
+    }
+    return permutation;
+  }
+
+  private int[] getInverse() {
+    if (inverse == null) {
+      int[] permutation = getPermutation();
+      int size = rowType.getFieldCount();
+      int[] result = new int[size];
+      for (int i = 0; i < size; i++) {
+        result[permutation[i]] = i;
+      }
+      inverse = result;
+    }
+    return inverse;
   }
 
   public int size() {
@@ -128,6 +156,14 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return o.getClass().isArray() ? (Object[]) o : new Object[]{o};
   }
 
+  public RelDataType getRowType() {
+    return rowType;
+  }
+
+  public void setRowType(RelDataType rowType) {
+    this.rowType = rowType;
+  }
+
   @Override
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (rowType == null) {
@@ -155,38 +191,48 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
-  public static Pair<Object, Object> getKeyValue(Object o, RelDataType rowType, List<String> keyFields) {
+  private Pair<Object, Object> getKeyValue(Object o) {
     if (!o.getClass().isArray()) {
       return new Pair<>(o, o);
-    } else {
-      Object[] objs = (Object[]) o;
-      if (keyFields.isEmpty()) {
-        // Use first field as key
-        return new Pair<>(
-                new Comparable[]{(Comparable) ((Object[]) o)[0]},
-                Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class));
-      }
-      int size = rowType.getFieldCount();
-      int keySize = Math.max(1, keyFields.size());
-      int valueSize = size - keySize;
-      Comparable[] keys = new Comparable[keySize];
-      Comparable[] values = new Comparable[valueSize];
-      int keyCount = 0;
-      int valueCount = 0;
-      Set<Integer> keyIndices = new HashSet<>();
-      // Use keyFields to order the keys
-      for (String keyField : keyFields) {
-        int index = rowType.getField(keyField, true, false).getIndex();
-        keyIndices.add(index);
-        keys[keyCount++] = (Comparable) objs[index];
-      }
-      for (int i = 0; i < size; i++) {
-        if (!keyIndices.contains(i)) {
-          values[valueCount++] = (Comparable) objs[i];
-        }
-      }
-      return new Pair<>(keys, values);
     }
+    Object[] objs = (Object[]) o;
+    if (keyFields.isEmpty()) {
+      // Use first field as key
+      return new Pair<>(
+              new Comparable[]{(Comparable) ((Object[]) o)[0]},
+              Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class));
+    }
+    int keySize = Math.max(1, keyFields.size());
+    int valueSize = rowType.getFieldCount() - keySize;
+    Comparable[] keys = new Comparable[keySize];
+    Comparable[] values = new Comparable[valueSize];
+    int[] permutation = getPermutation();
+    int index = 0;
+    for (int i = 0; i < keySize; i++) {
+      keys[index++] = (Comparable) objs[permutation[i]];
+    }
+    index = 0;
+    for (int i = keySize; i < valueSize; i++) {
+      values[index++] = (Comparable) objs[permutation[i]];
+    }
+    return new Pair<>(keys, values);
+  }
+
+  private Object getRow(Map.Entry entry) {
+    Object key = entry.getKey();
+    Object value = entry.getValue();
+    if (!key.getClass().isArray()) {
+      return key;
+    }
+    Object[] keys = (Object[]) key;
+    Object[] values = (Object[]) value;
+    int[] inverse = getInverse();
+    Object[] row = new Object[inverse.length];
+    for (int i = 0; i < inverse.length; i++) {
+      int index = inverse[i];
+      row[i] = index < keys.length ? keys[index] : values[index - keys.length];
+    }
+    return row;
   }
 
   @SuppressWarnings("unchecked")
@@ -238,7 +284,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean contains(Object o) {
-      Pair<?, ?> keyValue = getKeyValue(o, rowType, keyFields);
+      Pair<?, ?> keyValue = getKeyValue(o);
       return map.containsKey(keyValue.left);
     }
 
@@ -259,15 +305,15 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean add(Object o) {
-      Pair<?, ?> keyValue = getKeyValue(o, rowType, keyFields);
+      Pair<?, ?> keyValue = getKeyValue(o);
       map.put(keyValue.left, keyValue.right);
       return true;
     }
 
     @Override
     public boolean remove(Object o) {
-      Pair<?, ?> keyValue = getKeyValue(o, rowType, keyFields);
-      return map.remove(keyValue.left, keyValue.right);
+      Pair<?, ?> keyValue = getKeyValue(o);
+      return map.remove(keyValue.left) != null;
     }
 
     @Override
@@ -296,15 +342,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
 
     private List toList() {
-      return map.entrySet().stream()
-              .map(entry -> {
-                if (entry.getKey().getClass().isArray()) {
-                  return ObjectArrays.concat((Object[]) entry.getKey(), (Object[]) entry.getValue(), Object.class);
-                } else {
-                  return entry.getKey();
-                }
-              })
-              .collect(Collectors.toList());
+      return map.entrySet().stream().map(SortedTable.this::getRow).collect(Collectors.toList());
     }
   }
 }
