@@ -21,14 +21,24 @@ data: {
 
       # List of import statements.
       imports: [
-        "org.apache.calcite.sql.SqlCreate",
-        "org.apache.calcite.sql.parser.parserextension.SqlCreateTable",
+        "org.apache.calcite.schema.ColumnStrategy"
+        "org.apache.calcite.sql.SqlCreate"
+        "org.apache.calcite.sql.SqlDrop"
+        "org.apache.calcite.sql.ddl.SqlDdlNodes"
+        "org.apache.calcite.sql.ddl.SqlCreateTableExtension",
+        "java.util.Map"
+        "java.util.HashMap"
       ]
 
       # List of keywords.
       keywords: [
-        "UPLOAD"
+        "IF"
+        "MATERIALIZED"
+        "STORED"
+        "VIRTUAL"
         "JAR"
+        "FILE"
+        "ARCHIVE"
       ]
 
       # List of keywords from "keywords" section that are not reserved.
@@ -336,6 +346,15 @@ data: {
         "WRITE"
         "XML"
         "ZONE"
+
+        # not in core, added in server
+        "IF"
+        "MATERIALIZED"
+        "STORED"
+        "VIRTUAL"
+        "JAR"
+        "FILE"
+        "ARCHIVE"
       ]
 
       # List of additional join types. Each is a method with no arguments.
@@ -370,12 +389,24 @@ data: {
       # List of methods for parsing extensions to "CREATE [OR REPLACE]" calls.
       # Each must accept arguments "(SqlParserPos pos, boolean replace)".
       createStatementParserMethods: [
+        "SqlCreateForeignSchema"
+        "SqlCreateMaterializedView"
+        "SqlCreateSchema"
         "SqlCreateTable"
+        "SqlCreateType"
+        "SqlCreateView"
+        "SqlCreateFunction"
       ]
 
       # List of methods for parsing extensions to "DROP" calls.
       # Each must accept arguments "(SqlParserPos pos)".
       dropStatementParserMethods: [
+        "SqlDropMaterializedView"
+        "SqlDropSchema"
+        "SqlDropTable"
+        "SqlDropType"
+        "SqlDropView"
+        "SqlDropFunction"
       ]
 
       # Binary operators tokens

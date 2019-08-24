@@ -86,18 +86,9 @@ public class CsvTable<E> extends AbstractTable<E> {
   @SuppressWarnings("unchecked")
   @Override
   public void configure(Map<String, ?> operand) {
-    String fileName = (String) operand.get("file");
-    if (fileName != null) {
-      Path path = Paths.get(fileName);
-      final String directory = (String) operand.get("directory");
-      if (directory != null) {
-        path = Paths.get(directory, path.toString());
-      }
-      final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
-      if (base != null) {
-        path = Paths.get(base.getPath(), path.toString());
-      }
-      final Source source = Sources.of(path.toFile());
+    final String fileName = (String) operand.get("file");
+    final Source source = getSource(operand, fileName);
+    if (source != null) {
       if (rowType == null) {
         // rowType will be null for custom tables
         this.rowType = CsvTableSchema.getRowType(source);
@@ -119,6 +110,23 @@ public class CsvTable<E> extends AbstractTable<E> {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private Source getSource(Map<String, ?> operand, String fileName) {
+    if (fileName == null) {
+      return null;
+    }
+    Path path = Paths.get(fileName);
+    final String directory = (String) operand.get("directory");
+    if (directory != null) {
+      path = Paths.get(directory, path.toString());
+    }
+    final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    if (base != null) {
+      path = Paths.get(base.getPath(), path.toString());
+    }
+    File file = path.toFile();
+    return file.exists() ? Sources.of(path.toFile()) : null;
   }
 
   private static CSVReader openCsv(Source source) throws IOException {

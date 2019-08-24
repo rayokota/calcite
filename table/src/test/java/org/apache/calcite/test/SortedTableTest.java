@@ -188,7 +188,7 @@ public class SortedTableTest {
               .build())) {
 
       Statement s = connection.createStatement();
-      boolean b = s.execute("create table t (i int not null)");
+      boolean b = s.execute("create table t (i int not null, constraint pk primary key (i))");
       assertThat(b, is(false));
       int x = s.executeUpdate("insert into t values 1");
       assertThat(x, is(1));

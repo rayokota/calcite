@@ -74,7 +74,6 @@ public class AvroTable<E> extends AbstractTable<E> {
     return rows;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void configure(Map<String, ?> operand) {
     if (rowType == null) {
@@ -84,7 +83,7 @@ public class AvroTable<E> extends AbstractTable<E> {
     try {
       Schema schema = (Schema) operand.get("schema");
       DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
-      Source json = getSource(operand, schema, ".json");
+      Source json = getSource(operand, schema.getName() + ".json");
       if (json != null) {
         BufferedReader reader = Files.newBufferedReader(Paths.get(json.path()));
         String line;
@@ -92,7 +91,7 @@ public class AvroTable<E> extends AbstractTable<E> {
           addRow(datumReader.read(null, decoderFactory.jsonDecoder(schema, line)));
         }
       }
-      Source avro = getSource(operand, schema, ".avro");
+      Source avro = getSource(operand, schema.getName() + ".avro");
       if (avro != null) {
         DataFileReader<GenericRecord> dataFileReader = new DataFileReader<GenericRecord>(avro.file(), datumReader);
         for (GenericRecord record : dataFileReader) {
@@ -104,15 +103,10 @@ public class AvroTable<E> extends AbstractTable<E> {
     }
   }
 
-  private void addRow(GenericRecord record) {
-    E row = convertRow(record);
-    E keyArray = (E) SortedTable.getKey(row);
-    E valueArray = (E) SortedTable.getValue(row);
-    rows.put(keyArray, valueArray);
-  }
-
-  private Source getSource(Map<String, ?> operand, Schema schema, String suffix) {
-    String fileName = schema.getName() + suffix;
+  private Source getSource(Map<String, ?> operand, String fileName) {
+    if (fileName == null) {
+      return null;
+    }
     Path path = Paths.get(fileName);
     final String directory = (String) operand.get("directory");
     if (directory != null) {
@@ -124,6 +118,14 @@ public class AvroTable<E> extends AbstractTable<E> {
     }
     File file = path.toFile();
     return file.exists() ? Sources.of(path.toFile()) : null;
+  }
+
+  @SuppressWarnings("unchecked")
+  private void addRow(GenericRecord record) {
+    E row = convertRow(record);
+    E keyArray = (E) SortedTable.getKey(row);
+    E valueArray = (E) SortedTable.getValue(row);
+    rows.put(keyArray, valueArray);
   }
 
   @SuppressWarnings("unchecked")
