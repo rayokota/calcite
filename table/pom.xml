@@ -129,8 +129,8 @@ limitations under the License.
           <execution>
             <configuration>
               <config>src/main/codegen/config.fmpp</config>
+              <templates>src/main/codegen/templates</templates>
               <output>${project.build.directory}/generated-sources/fmpp</output>
-              <templates>${top.dir}/core/src/main/codegen/templates</templates>
             </configuration>
             <id>generate-fmpp-sources</id>
             <phase>validate</phase>
