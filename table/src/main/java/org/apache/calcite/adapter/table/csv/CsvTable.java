@@ -88,16 +88,16 @@ public class CsvTable<E> extends AbstractTable<E> {
   public void configure(Map<String, ?> operand) {
     String fileName = (String) operand.get("file");
     if (fileName != null) {
-      Path file = Paths.get(fileName);
+      Path path = Paths.get(fileName);
       final String directory = (String) operand.get("directory");
       if (directory != null) {
-        file = Paths.get(directory, file.toString());
+        path = Paths.get(directory, path.toString());
       }
       final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
       if (base != null) {
-        file = Paths.get(base.getPath(), file.toString());
+        path = Paths.get(base.getPath(), path.toString());
       }
-      final Source source = Sources.of(file.toFile());
+      final Source source = Sources.of(path.toFile());
       if (rowType == null) {
         // rowType will be null for custom tables
         this.rowType = CsvTableSchema.getRowType(source);

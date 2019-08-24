@@ -18,6 +18,13 @@ package org.apache.calcite.adapter.table;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.ObjectArrays;
+import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.table.avro.AvroTable;
 import org.apache.calcite.adapter.table.csv.CsvTable;
@@ -40,6 +47,7 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
