@@ -42,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedFilterableTable extends SortedTable
     implements FilterableTable {
   /** Creates a CsvFilterableTable. */
-  public SortedFilterableTable(Map<String, Object> operand, RelDataType rowType) {
-    super(operand, rowType);
+  public SortedFilterableTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
+    super(operand, rowType, keyFields);
   }
 
   public String toString() {

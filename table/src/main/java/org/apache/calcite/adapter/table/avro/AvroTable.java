@@ -32,6 +32,7 @@ import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -53,15 +54,17 @@ import java.util.TreeMap;
  * @param <E> Row type
  */
 public class AvroTable<E> extends AbstractTable<E> {
-  private Map<E, E> rows;
+  private final Map<E, E> rows;
   private RelDataType rowType;
+  private final List<String> keyFields;
 
   private final DecoderFactory decoderFactory = DecoderFactory.get();
 
   /** Creates a CsvTable. */
-  public AvroTable(RelDataType rowType) {
+  public AvroTable(RelDataType rowType, List<String> keyFields) {
     this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
     this.rowType = rowType;
+    this.keyFields = keyFields;
   }
 
   @Override
@@ -123,9 +126,8 @@ public class AvroTable<E> extends AbstractTable<E> {
   @SuppressWarnings("unchecked")
   private void addRow(GenericRecord record) {
     E row = convertRow(record);
-    E keyArray = (E) SortedTable.getKey(row);
-    E valueArray = (E) SortedTable.getValue(row);
-    rows.put(keyArray, valueArray);
+    Pair<E, E> keyValue = (Pair<E, E>) SortedTable.getKeyValue(row, rowType, keyFields);
+    rows.put(keyValue.left, keyValue.right);
   }
 
   @SuppressWarnings("unchecked")

@@ -29,9 +29,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
@@ -98,17 +100,21 @@ public class SortedTableSchema extends AbstractSchema {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  /** Creates different sub-type of table based on the "flavor" attribute. */
   public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType) {
+      return createTable(operand, rowType, Collections.emptyList());
+  }
+
+  /** Creates different sub-type of table based on the "flavor" attribute. */
+  public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
     String flavorName = (String) operand.getOrDefault("flavor", Flavor.SCANNABLE.name());
     Flavor flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     switch (flavor) {
       case TRANSLATABLE:
-        return new SortedTranslatableTable(operand, rowType);
+        return new SortedTranslatableTable(operand, rowType, keyFields);
       case SCANNABLE:
-        return new SortedScannableTable(operand, rowType);
+        return new SortedScannableTable(operand, rowType, keyFields);
       case FILTERABLE:
-        return new SortedFilterableTable(operand, rowType);
+        return new SortedFilterableTable(operand, rowType, keyFields);
       default:
         throw new AssertionError("Unknown flavor " + flavor);
     }

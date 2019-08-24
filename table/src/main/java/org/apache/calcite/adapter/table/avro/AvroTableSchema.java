@@ -99,6 +99,7 @@ public class AvroTableSchema extends AbstractTableSchema {
         Schema.Parser parser = new Schema.Parser();
         Schema avroSchema = parser.parse(source.file());
         configs.put("schema", avroSchema);
+        // TODO use primary key annotation
         final Table table = SortedTableSchema.createTable(configs, getRowType(avroSchema));
         tableMap.put(avroSchema.getName(), table);
       }

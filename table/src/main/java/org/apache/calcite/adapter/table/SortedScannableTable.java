@@ -24,7 +24,9 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.ScannableTable;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -36,8 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedScannableTable extends SortedTable
     implements ScannableTable {
   /** Creates a CsvScannableTable. */
-  public SortedScannableTable(Map<String, Object> operand, RelDataType rowType) {
-    super(operand, rowType);
+  public SortedScannableTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
+    super(operand, rowType, keyFields);
   }
 
   public String toString() {

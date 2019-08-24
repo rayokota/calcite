@@ -40,21 +40,25 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.Pair;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -63,19 +67,20 @@ import java.util.stream.Collectors;
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   private final RelDataType rowType;
   private final AbstractTable<?> rows;
+  private final List<String> keyFields;
 
   /** Creates a CsvTable. */
-  SortedTable(Map<String, Object> operand, RelDataType rowType) {
+  SortedTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
     super(Object[].class);
     String kindName = (String) operand.get("kind");
     Kind kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
     AbstractTable<?> rows = null;
     switch (kind) {
       case AVRO:
-        rows = new AvroTable<>(rowType);
+        rows = new AvroTable<>(rowType, keyFields);
         break;
       case CSV:
-        rows = new CsvTable<>(rowType);
+        rows = new CsvTable<>(rowType, keyFields);
         break;
       default:
         throw new IllegalArgumentException("Unsupported kind " + kind);
@@ -83,10 +88,11 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     rows.configure(operand);
     this.rows = rows;
     this.rowType = rows.getRowType();
+    this.keyFields = keyFields;
   }
 
   public int size() {
-    return rowType.getFieldList().size();
+    return rowType.getFieldCount();
   }
 
   @Override public TableModify toModificationRel(
@@ -149,14 +155,38 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
-  // TODO fix to get use RelDataType
-  public static Object getKey(Object o) {
-    return o.getClass().isArray() ? new Comparable[]{(Comparable) ((Object[]) o)[0]} : o;
-  }
-
-  // TODO fix to get use RelDataType
-  public static Object getValue(Object o) {
-    return o.getClass().isArray() ? Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class) : o;
+  public static Pair<Object, Object> getKeyValue(Object o, RelDataType rowType, List<String> keyFields) {
+    if (!o.getClass().isArray()) {
+      return new Pair<>(o, o);
+    } else {
+      Object[] objs = (Object[]) o;
+      if (keyFields.isEmpty()) {
+        // Use first field as key
+        return new Pair<>(
+                new Comparable[]{(Comparable) ((Object[]) o)[0]},
+                Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class));
+      }
+      int size = rowType.getFieldCount();
+      int keySize = Math.max(1, keyFields.size());
+      int valueSize = size - keySize;
+      Comparable[] keys = new Comparable[keySize];
+      Comparable[] values = new Comparable[valueSize];
+      int keyCount = 0;
+      int valueCount = 0;
+      Set<Integer> keyIndices = new HashSet<>();
+      // Use keyFields to order the keys
+      for (String keyField : keyFields) {
+        int index = rowType.getField(keyField, true, false).getIndex();
+        keyIndices.add(index);
+        keys[keyCount++] = (Comparable) objs[index];
+      }
+      for (int i = 0; i < size; i++) {
+        if (!keyIndices.contains(i)) {
+          values[valueCount++] = (Comparable) objs[i];
+        }
+      }
+      return new Pair<>(keys, values);
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -188,7 +218,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
   }
 
-  static class MapWrapper implements Collection {
+  class MapWrapper implements Collection {
 
     private final Map<Object, Object> map;
 
@@ -208,7 +238,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean contains(Object o) {
-      return map.containsKey(getKey(o));
+      Pair<?, ?> keyValue = getKeyValue(o, rowType, keyFields);
+      return map.containsKey(keyValue.left);
     }
 
     @Override
@@ -228,13 +259,15 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean add(Object o) {
-      map.put(getKey(o), getValue(o));
+      Pair<?, ?> keyValue = getKeyValue(o, rowType, keyFields);
+      map.put(keyValue.left, keyValue.right);
       return true;
     }
 
     @Override
     public boolean remove(Object o) {
-      return map.remove(getKey(o), getValue(o));
+      Pair<?, ?> keyValue = getKeyValue(o, rowType, keyFields);
+      return map.remove(keyValue.left, keyValue.right);
     }
 
     @Override

@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -50,10 +51,9 @@ import java.util.TreeMap;
  * @param <E> Row type
  */
 public class CsvTable<E> extends AbstractTable<E> {
-  private List<String> names;
-  private List<SortedTableColumnType> fieldTypes;
-  private Map<E, E> rows;
+  private final Map<E, E> rows;
   private RelDataType rowType;
+  private final List<String> keyFields;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -68,9 +68,10 @@ public class CsvTable<E> extends AbstractTable<E> {
   }
 
   /** Creates a CsvTable. */
-  public CsvTable(RelDataType rowType) {
+  public CsvTable(RelDataType rowType, List<String> keyFields) {
     this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
     this.rowType = rowType;
+    this.keyFields = keyFields;
   }
 
   @Override
@@ -101,9 +102,8 @@ public class CsvTable<E> extends AbstractTable<E> {
         String[] strings = reader.readNext();
         while (strings != null) {
           E row = rowConverter.convertRow(strings);
-          E keyArray = (E) SortedTable.getKey(row);
-          E valueArray = (E) SortedTable.getValue(row);
-          rows.put(keyArray, valueArray);
+          Pair<E, E> keyValue = (Pair<E, E>) SortedTable.getKeyValue(row, rowType, keyFields);
+          rows.put(keyValue.left, keyValue.right);
           strings = reader.readNext();
         }
       } catch (IOException e) {

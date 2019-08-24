@@ -32,7 +32,9 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -41,8 +43,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedTranslatableTable extends SortedTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  public SortedTranslatableTable(Map<String, Object> operand, RelDataType rowType) {
-    super(operand, rowType);
+  public SortedTranslatableTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
+    super(operand, rowType, keyFields);
   }
 
   public String toString() {

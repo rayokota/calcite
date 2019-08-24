@@ -74,8 +74,10 @@ import org.apache.calcite.util.Util;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -143,6 +145,7 @@ public class SqlCreateTableExtension extends SqlCreateTable {
     final ImmutableList.Builder<ColumnDef> b = ImmutableList.builder();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     final RelDataTypeFactory.Builder storedBuilder = typeFactory.builder();
+    final List<String> keyFields = new ArrayList<>();
     for (Ord<SqlNode> c : Ord.zip(columnList)) {
       if (c.e instanceof SqlColumnDeclaration) {
         final SqlColumnDeclaration d = (SqlColumnDeclaration) c.e;
@@ -177,8 +180,18 @@ public class SqlCreateTableExtension extends SqlCreateTable {
         b.add(ColumnDef.of(c.e, f.getType(), strategy));
         builder.add(id.getSimple(), f.getType());
         storedBuilder.add(id.getSimple(), f.getType());
+      } else if (c.e instanceof SqlKeyConstraint) {
+        final SqlKeyConstraint keyConstraint = (SqlKeyConstraint) c.e;
+        if (keyConstraint.getOperator() == SqlKeyConstraint.PRIMARY) {
+          List<SqlNode> operands = keyConstraint.getOperandList();
+          SqlNodeList sqlNodeList = (SqlNodeList) operands.get(1);
+          List<SqlNode> keyNodes = sqlNodeList.getList();
+          for (SqlNode keyNode : keyNodes) {
+            keyFields.add(((SqlIdentifier) keyNode).getSimple());
+          }
+        }
       } else {
-        //throw new AssertionError(c.e.getClass());
+        throw new AssertionError(c.e.getClass());
       }
     }
     final RelDataType rowType = builder.build();
@@ -209,13 +222,13 @@ public class SqlCreateTableExtension extends SqlCreateTable {
       }
       return;
     }
-    
+
     // Table does not exist. Create it.
     SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
     SortedTable.Kind kind = schemaPlus.getKind();
     SortedTable.Flavor flavor = schemaPlus.getFlavor();
     schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(
-            ImmutableMap.of("kind", kind.name(), "flavor", flavor.name()), rowType));
+            ImmutableMap.of("kind", kind.name(), "flavor", flavor.name()), rowType, keyFields));
     /*
     pair.left.add(pair.right,
             new MutableArrayTable(pair.right,

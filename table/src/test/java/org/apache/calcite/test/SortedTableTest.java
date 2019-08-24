@@ -199,6 +199,18 @@ public class SortedTableTest {
       output(resultSet);
       resultSet.close();
 
+      s = connection.createStatement();
+      b = s.execute("create table t2 (i int not null, j int not null, k varchar, constraint pk primary key (j, i))");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into t2 values (1, 2, 'hi')");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t2 values (3, 4, 'world')");
+      assertThat(x, is(1));
+
+      resultSet = s.executeQuery("select * from t2");
+      output(resultSet);
+      resultSet.close();
+
       String sql = "select * from EMPS";
       resultSet = s.executeQuery(sql);
       output(resultSet);
