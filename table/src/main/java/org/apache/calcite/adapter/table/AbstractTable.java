@@ -16,23 +16,10 @@
  */
 package org.apache.calcite.adapter.table;
 
-import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.collect.ForwardingMap;
-import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.schema.Table;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
 import org.apache.kafka.common.Configurable;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-public abstract class AbstractSortedTableSchema extends ForwardingMap<String, Table> implements Configurable {
+public abstract class AbstractTable<E> extends ForwardingMap<E, E> implements Configurable {
+  public abstract RelDataType getRowType();
 }

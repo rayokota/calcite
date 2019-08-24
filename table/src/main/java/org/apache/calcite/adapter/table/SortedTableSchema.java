@@ -19,15 +19,14 @@ package org.apache.calcite.adapter.table;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.table.SortedTable.Flavor;
 import org.apache.calcite.adapter.table.SortedTable.Kind;
-import org.apache.calcite.adapter.table.avro.AvroSortedTableSchema;
-import org.apache.calcite.adapter.table.csv.CsvSortedTableSchema;
+import org.apache.calcite.adapter.table.avro.AvroTableSchema;
+import org.apache.calcite.adapter.table.csv.CsvTableSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
-import org.apache.kafka.common.Configurable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +40,7 @@ import java.util.Map;
 public class SortedTableSchema extends AbstractSchema {
   private final Kind kind;
   private final Flavor flavor;
-  private final AbstractSortedTableSchema tableMap;
+  private final AbstractTableSchema tableMap;
 
   /**
    * Creates a CSV schema.
@@ -52,14 +51,16 @@ public class SortedTableSchema extends AbstractSchema {
     this.flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     String kindName = (String) operand.get("kind");
     this.kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
-    AbstractSortedTableSchema tableMap = null;
+    AbstractTableSchema tableMap = null;
     switch (kind) {
       case AVRO:
-        tableMap = new AvroSortedTableSchema();
+        tableMap = new AvroTableSchema();
         break;
       case CSV:
-        tableMap = new CsvSortedTableSchema();
+        tableMap = new CsvTableSchema();
         break;
+      default:
+        throw new IllegalArgumentException("Unsupported kind " + kind);
     }
     tableMap.configure(operand);
     this.tableMap = tableMap;
@@ -102,14 +103,14 @@ public class SortedTableSchema extends AbstractSchema {
     String flavorName = (String) operand.getOrDefault("flavor", Flavor.SCANNABLE.name());
     Flavor flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     switch (flavor) {
-    case TRANSLATABLE:
-      return new SortedTranslatableTable(operand, rowType);
-    case SCANNABLE:
-      return new SortedScannableTable(operand, rowType);
-    case FILTERABLE:
-      return new SortedFilterableTable(operand, rowType);
-    default:
-      throw new AssertionError("Unknown flavor " + flavor);
+      case TRANSLATABLE:
+        return new SortedTranslatableTable(operand, rowType);
+      case SCANNABLE:
+        return new SortedScannableTable(operand, rowType);
+      case FILTERABLE:
+        return new SortedFilterableTable(operand, rowType);
+      default:
+        throw new AssertionError("Unknown flavor " + flavor);
     }
   }
 }

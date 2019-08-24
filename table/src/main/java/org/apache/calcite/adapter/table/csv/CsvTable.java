@@ -17,8 +17,7 @@
 package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.google.common.collect.ForwardingMap;
-import org.apache.calcite.adapter.table.AbstractSortedTable;
+import org.apache.calcite.adapter.table.AbstractTable;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.avatica.util.Base64;
@@ -29,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.utils.Bytes;
 
 import java.io.File;
@@ -40,23 +38,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Base class for table that reads CSV files.
  *
  * @param <E> Row type
  */
-public class CsvSortedTable<E> extends AbstractSortedTable<E> {
+public class CsvTable<E> extends AbstractTable<E> {
   private List<String> names;
   private List<SortedTableColumnType> fieldTypes;
   private Map<E, E> rows;
@@ -75,7 +68,7 @@ public class CsvSortedTable<E> extends AbstractSortedTable<E> {
   }
 
   /** Creates a CsvTable. */
-  public CsvSortedTable(RelDataType rowType) {
+  public CsvTable(RelDataType rowType) {
     this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
     this.rowType = rowType;
   }
@@ -107,14 +100,14 @@ public class CsvSortedTable<E> extends AbstractSortedTable<E> {
       final Source source = Sources.of(file.toFile());
       if (rowType == null) {
         // rowType will be null for custom tables
-        this.rowType = CsvSortedTableSchema.getRowType(source);
+        this.rowType = CsvTableSchema.getRowType(source);
       }
       try (CSVReader reader = openCsv(source)) {
-        String[] strings = reader.readNext(); // skip header row
+        reader.readNext(); // skip header row
         List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
         //noinspection unchecked
         RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
-        strings = reader.readNext();
+        String[] strings = reader.readNext();
         while (strings != null) {
           E row = rowConverter.convertRow(strings);
           E keyArray = (E) SortedTable.getKey(row);

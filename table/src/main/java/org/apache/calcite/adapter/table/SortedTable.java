@@ -19,8 +19,8 @@ package org.apache.calcite.adapter.table;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.ObjectArrays;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
-import org.apache.calcite.adapter.table.avro.AvroSortedTable;
-import org.apache.calcite.adapter.table.csv.CsvSortedTable;
+import org.apache.calcite.adapter.table.avro.AvroTable;
+import org.apache.calcite.adapter.table.csv.CsvTable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -39,7 +39,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.kafka.common.Configurable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,21 +54,23 @@ import java.util.stream.Collectors;
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   private final RelDataType rowType;
-  private final AbstractSortedTable<?> rows;
+  private final AbstractTable<?> rows;
 
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType) {
     super(Object[].class);
     String kindName = (String) operand.get("kind");
     Kind kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
-    AbstractSortedTable<?> rows = null;
+    AbstractTable<?> rows = null;
     switch (kind) {
       case AVRO:
-        rows = new AvroSortedTable<>(rowType);
+        rows = new AvroTable<>(rowType);
         break;
       case CSV:
-        rows = new CsvSortedTable<>(rowType);
+        rows = new CsvTable<>(rowType);
         break;
+      default:
+        throw new IllegalArgumentException("Unsupported kind " + kind);
     }
     rows.configure(operand);
     this.rows = rows;
@@ -93,6 +94,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
             updateColumnList, sourceExpressionList, flattened);
   }
 
+  @SuppressWarnings("unchecked")
   @Override public Collection getModifiableCollection() {
     return new MapWrapper((Map<Object, Object>) rows);
   }
@@ -149,7 +151,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return o.getClass().isArray() ? Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class) : o;
   }
 
-  public static class MapComparator implements Comparator {
+  @SuppressWarnings("unchecked")
+  public static class MapComparator implements Comparator<Object> {
     private final Comparator defaultComparator = Comparator.nullsFirst(Comparator.naturalOrder());
 
     @Override

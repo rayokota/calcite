@@ -16,12 +16,10 @@
  */
 package org.apache.calcite.adapter.table;
 
-import org.apache.calcite.adapter.table.SortedTable.Flavor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
 
-import java.util.Locale;
 import java.util.Map;
 
 /**

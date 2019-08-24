@@ -57,7 +57,8 @@ public class SortedFilterableTable extends SortedTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new SortedTableEnumerator<>(Iterators.transform(getModifiableCollection().iterator(), SortedTable::toRow),
+        return new SortedTableEnumerator<>(Iterators.<Object, Object[]>transform(
+                getModifiableCollection().iterator(), SortedTable::toRow),
                 cancelFlag, filterValues, fields);
       }
     };
