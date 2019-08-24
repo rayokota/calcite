@@ -26,6 +26,7 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.reflect.AvroSchema;
+import org.apache.calcite.adapter.table.AbstractSortedTable;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.adapter.table.csv.CsvSortedTableSchema;
@@ -68,7 +69,7 @@ import java.util.function.Function;
  *
  * @param <E> Row type
  */
-public class AvroSortedTable<E> extends ForwardingMap<E, E> implements Configurable {
+public class AvroSortedTable<E> extends AbstractSortedTable<E> {
   private List<String> names;
   private List<SortedTableColumnType> fieldTypes;
   private Map<E, E> rows;
@@ -95,15 +96,15 @@ public class AvroSortedTable<E> extends ForwardingMap<E, E> implements Configura
   }
 
   @Override
-  protected Map<E, E> delegate() {
-    return rows;
-  }
-
   public RelDataType getRowType() {
     return rowType;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
+  protected Map<E, E> delegate() {
+    return rows;
+  }
+
   @Override
   public void configure(Map<String, ?> operand) {
     Schema schema = (Schema) operand.get("schema");

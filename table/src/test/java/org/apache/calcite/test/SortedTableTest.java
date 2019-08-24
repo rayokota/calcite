@@ -150,6 +150,7 @@ public class SortedTableTest {
             + "       name: 'bad',\n"
             + "       factory: 'org.apache.calcite.adapter.table.SortedTableSchemaFactory',\n"
             + "       operand: {\n"
+            + "         kind: 'csv',\n"
             + "         directory: '/does/not/exist'\n"
             + "       }\n"
             + "     }\n"
@@ -768,7 +769,7 @@ public class SortedTableTest {
       final Schema schema =
           SortedTableSchemaFactory.INSTANCE
               .create(calciteConnection.getRootSchema(), null,
-                  ImmutableMap.of("directory",
+                  ImmutableMap.of("kind", "csv", "directory",
                       resourcePath("sales"), "flavor", "scannable"));
       calciteConnection.getRootSchema().add("TEST", schema);
       final String sql = "select * from \"TEST\".\"DEPTS\" where \"NAME\" = ?";

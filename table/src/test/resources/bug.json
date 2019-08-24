@@ -23,6 +23,7 @@
       "type": "custom",
       "factory": "org.apache.calcite.adapter.table.SortedTableSchemaFactory",
       "operand": {
+        "kind": "csv",
         "directory": "bug"
       }
     }

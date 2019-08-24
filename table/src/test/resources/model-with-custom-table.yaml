@@ -23,5 +23,6 @@ schemas:
     type: custom
     factory: org.apache.calcite.adapter.table.SortedTableFactory
     operand:
+      kind: csv
       file: sales/EMPS.csv.gz
       flavor: scannable

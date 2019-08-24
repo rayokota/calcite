@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.table.avro;
 import au.com.bytecode.opencsv.CSVReader;
 import avro.shaded.com.google.common.collect.ForwardingMap;
 import org.apache.avro.Schema;
+import org.apache.calcite.adapter.table.AbstractSortedTableSchema;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.model.ModelHandler;
@@ -46,16 +47,14 @@ import java.util.function.Function;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class AvroSortedTableSchema extends ForwardingMap<String, Table> implements Configurable {
-  private final SortedTableSchema schema;
+public class AvroSortedTableSchema extends AbstractSortedTableSchema {
   private final Map<String, Table> tableMap;
   private File directoryFile;
 
   /**
    * Creates a CSV schema.
    */
-  public AvroSortedTableSchema(SortedTableSchema schema) {
-    this.schema = schema;
+  public AvroSortedTableSchema() {
     this.tableMap = new HashMap<>();
   }
 
@@ -67,8 +66,7 @@ public class AvroSortedTableSchema extends ForwardingMap<String, Table> implemen
   @Override
   public void configure(Map<String, ?> operand) {
     final String directory = (String) operand.get("directory");
-    final File base =
-            (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     File directoryFile = new File(directory);
     if (base != null && !directoryFile.isAbsolute()) {
       directoryFile = new File(base, directory);
@@ -113,7 +111,7 @@ public class AvroSortedTableSchema extends ForwardingMap<String, Table> implemen
           Schema.Parser parser = new Schema.Parser();
           Schema avroSchema = parser.parse(source.file());
           configs.put("schema", avroSchema);
-          final Table table = schema.createTable(configs, getRowType(avroSchema));
+          final Table table = SortedTableSchema.createTable(configs, getRowType(avroSchema));
           tableMap.put(avroSchema.getName(), table);
         }
       }

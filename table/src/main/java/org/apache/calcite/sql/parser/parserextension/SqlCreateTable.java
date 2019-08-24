@@ -17,7 +17,9 @@
 package org.apache.calcite.sql.parser.parserextension;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -124,7 +126,10 @@ public class SqlCreateTable extends SqlCreate
     }
     final RelDataType rowType = builder.build();
     SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
-    schemaPlus.add(name.getSimple(), schemaPlus.createTable(Collections.emptyMap(), rowType));
+    SortedTable.Kind kind = schemaPlus.getKind();
+    SortedTable.Flavor flavor = schemaPlus.getFlavor();
+    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(
+            ImmutableMap.of("kind", kind.name(), "flavor", flavor.name()), rowType));
     //schema.add(name.getSimple(),
     //    new MutableArrayTable(name.getSimple(),
     //        RelDataTypeImpl.proto(rowType)));

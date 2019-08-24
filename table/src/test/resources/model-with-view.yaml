@@ -23,6 +23,7 @@ schemas:
   type: custom
   factory: org.apache.calcite.adapter.table.SortedTableSchemaFactory
   operand:
+    kind: csv
     directory: sales
   tables:
   - name: FEMALE_EMPS

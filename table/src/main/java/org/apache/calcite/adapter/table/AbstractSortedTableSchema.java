@@ -13,21 +13,26 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * A JSON model of a simple Calcite schema.
  */
-{
-  "version": "1.0",
-  "defaultSchema": "SALES",
-  "schemas": [
-    {
-      "name": "SALES",
-      "type": "custom",
-      "factory": "org.apache.calcite.adapter.table.SortedTableSchemaFactory",
-      "operand": {
-        "kind": "csv",
-        "directory": "sales"
-      }
-    }
-  ]
+package org.apache.calcite.adapter.table;
+
+import au.com.bytecode.opencsv.CSVReader;
+import com.google.common.collect.ForwardingMap;
+import org.apache.calcite.model.ModelHandler;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Sources;
+import org.apache.kafka.common.Configurable;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public abstract class AbstractSortedTableSchema extends ForwardingMap<String, Table> implements Configurable {
 }

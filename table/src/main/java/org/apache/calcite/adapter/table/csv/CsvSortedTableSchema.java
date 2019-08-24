@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.collect.ForwardingMap;
+import org.apache.calcite.adapter.table.AbstractSortedTable;
+import org.apache.calcite.adapter.table.AbstractSortedTableSchema;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.model.ModelHandler;
@@ -46,16 +48,14 @@ import java.util.function.Function;
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
  */
-public class CsvSortedTableSchema extends ForwardingMap<String, Table> implements Configurable {
-  private final SortedTableSchema schema;
+public class CsvSortedTableSchema extends AbstractSortedTableSchema {
   private final Map<String, Table> tableMap;
   private File directoryFile;
 
   /**
    * Creates a CSV schema.
    */
-  public CsvSortedTableSchema(SortedTableSchema schema) {
-    this.schema = schema;
+  public CsvSortedTableSchema() {
     this.tableMap = new HashMap<>();
   }
 
@@ -67,8 +67,7 @@ public class CsvSortedTableSchema extends ForwardingMap<String, Table> implement
   @Override
   public void configure(Map<String, ?> operand) {
     final String directory = (String) operand.get("directory");
-    final File base =
-            (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    final File base = (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     File directoryFile = new File(directory);
     if (base != null && !directoryFile.isAbsolute()) {
       directoryFile = new File(base, directory);
@@ -113,7 +112,7 @@ public class CsvSortedTableSchema extends ForwardingMap<String, Table> implement
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
         configs.put("file", source.file().getName());
-        final Table table = schema.createTable(configs, getRowType(source));
+        final Table table = SortedTableSchema.createTable(configs, getRowType(source));
         tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
       }
     }

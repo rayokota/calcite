@@ -39,12 +39,14 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.kafka.common.Configurable;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -53,17 +55,25 @@ import java.util.stream.Collectors;
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   private final RelDataType rowType;
-  private final Map<?, ?> rows;
+  private final AbstractSortedTable<?> rows;
 
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType) {
     super(Object[].class);
-    // TODO
-    //CsvSortedTable<?> csvTable = new CsvSortedTable<>(rowType);
-    AvroSortedTable<?> csvTable = new AvroSortedTable<>(rowType);
-    csvTable.configure(operand);
-    this.rows = csvTable;
-    this.rowType = csvTable.getRowType();
+    String kindName = (String) operand.get("kind");
+    Kind kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
+    AbstractSortedTable<?> rows = null;
+    switch (kind) {
+      case AVRO:
+        rows = new AvroSortedTable<>(rowType);
+        break;
+      case CSV:
+        rows = new CsvSortedTable<>(rowType);
+        break;
+    }
+    rows.configure(operand);
+    this.rows = rows;
+    this.rowType = rows.getRowType();
   }
 
   public int size() {
@@ -109,6 +119,10 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
     RelProtoDataType protoRowType = RelDataTypeImpl.proto(rowType);
     return protoRowType.apply(typeFactory);
+  }
+
+  public enum Kind {
+    AVRO, CSV, KAFKA
   }
 
   /** Various degrees of table "intelligence". */

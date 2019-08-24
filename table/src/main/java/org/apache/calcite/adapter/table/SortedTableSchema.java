@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.table;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.adapter.table.SortedTable.Flavor;
+import org.apache.calcite.adapter.table.SortedTable.Kind;
 import org.apache.calcite.adapter.table.avro.AvroSortedTableSchema;
 import org.apache.calcite.adapter.table.csv.CsvSortedTableSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -37,24 +39,38 @@ import java.util.Map;
  * is a CSV file in that directory.
  */
 public class SortedTableSchema extends AbstractSchema {
-  private final SortedTable.Flavor flavor;
-  private final Map<String, Table> tableMap;
+  private final Kind kind;
+  private final Flavor flavor;
+  private final AbstractSortedTableSchema tableMap;
 
   /**
    * Creates a CSV schema.
    */
   public SortedTableSchema(Map<String, Object> operand) {
     super();
-    String flavorName = (String) operand.get("flavor");
-    if (flavorName == null) {
-      this.flavor = SortedTable.Flavor.SCANNABLE;
-    } else {
-      this.flavor = SortedTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
+    String flavorName = (String) operand.getOrDefault("flavor", Flavor.SCANNABLE.name());
+    this.flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
+    String kindName = (String) operand.get("kind");
+    this.kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
+    AbstractSortedTableSchema tableMap = null;
+    switch (kind) {
+      case AVRO:
+        tableMap = new AvroSortedTableSchema();
+        break;
+      case CSV:
+        tableMap = new CsvSortedTableSchema();
+        break;
     }
-    // TODO
-    //this.tableMap = new CsvSortedTableSchema(this);
-    this.tableMap = new AvroSortedTableSchema(this);
-    ((Configurable) tableMap).configure(operand);
+    tableMap.configure(operand);
+    this.tableMap = tableMap;
+  }
+
+  public Kind getKind() {
+    return kind;
+  }
+
+  public Flavor getFlavor() {
+    return flavor;
   }
 
   public void add(String name, Table table) {
@@ -81,12 +97,10 @@ public class SortedTableSchema extends AbstractSchema {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public SortedTable createTable(Map<String, Object> operand, RelDataType rowType) {
-    return createTable(operand, rowType, flavor);
-  }
-
   /** Creates different sub-type of table based on the "flavor" attribute. */
-  public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType, SortedTable.Flavor flavor) {
+  public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType) {
+    String flavorName = (String) operand.getOrDefault("flavor", Flavor.SCANNABLE.name());
+    Flavor flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     switch (flavor) {
     case TRANSLATABLE:
       return new SortedTranslatableTable(operand, rowType);

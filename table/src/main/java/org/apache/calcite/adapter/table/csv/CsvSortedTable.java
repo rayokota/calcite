@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.collect.ForwardingMap;
+import org.apache.calcite.adapter.table.AbstractSortedTable;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.avatica.util.Base64;
@@ -55,7 +56,7 @@ import java.util.function.Function;
  *
  * @param <E> Row type
  */
-public class CsvSortedTable<E> extends ForwardingMap<E, E> implements Configurable {
+public class CsvSortedTable<E> extends AbstractSortedTable<E> {
   private List<String> names;
   private List<SortedTableColumnType> fieldTypes;
   private Map<E, E> rows;
@@ -80,12 +81,13 @@ public class CsvSortedTable<E> extends ForwardingMap<E, E> implements Configurab
   }
 
   @Override
-  protected Map<E, E> delegate() {
-    return rows;
-  }
-
   public RelDataType getRowType() {
     return rowType;
+  }
+
+  @Override
+  protected Map<E, E> delegate() {
+    return rows;
   }
 
   @SuppressWarnings("unchecked")
