@@ -87,21 +87,22 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     if (permutationIndices == null) {
       int size = size();
       if (keyFields.isEmpty()) {
-        return identityList(size);
-      }
-      int[] result = new int[size];
-      Set<Integer> keyIndices = new HashSet<>();
-      int index = 0;
-      for (String keyField : keyFields) {
-        keyIndices.add(index);
-        result[index++] = rowType.getField(keyField, true, false).getIndex();
-      }
-      for (int i = 0; i < size; i++) {
-        if (!keyIndices.contains(i)) {
-          result[index++] = i;
+        permutationIndices = identityList(size);
+      } else {
+        int[] result = new int[size];
+        Set<Integer> keyIndices = new HashSet<>();
+        int index = 0;
+        for (String keyField : keyFields) {
+          keyIndices.add(index);
+          result[index++] = rowType.getField(keyField, true, false).getIndex();
         }
+        for (int i = 0; i < size; i++) {
+          if (!keyIndices.contains(i)) {
+            result[index++] = i;
+          }
+        }
+        permutationIndices = result;
       }
-      permutationIndices = result;
     }
     return permutationIndices;
   }
