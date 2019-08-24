@@ -58,8 +58,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   private RelDataType rowType;
   private final AbstractTable<?> rows;
   private final List<String> keyFields;
-  private int[] permutation;
-  private int[] inverse;
+  private int[] permutationIndices;
+  private int[] inverseIndices;
 
   /** Creates a CsvTable. */
   SortedTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
@@ -83,9 +83,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     rows.configure(operand);
   }
 
-  private int[] getPermutation() {
-    if (permutation == null) {
-      int size = rowType.getFieldCount();
+  private int[] getPermutationIndices() {
+    if (permutationIndices == null) {
+      int size = size();
       if (keyFields.isEmpty()) {
         return identityList(size);
       }
@@ -101,22 +101,22 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
           result[index++] = i;
         }
       }
-      permutation = result;
+      permutationIndices = result;
     }
-    return permutation;
+    return permutationIndices;
   }
 
-  private int[] getInverse() {
-    if (inverse == null) {
-      int[] permutation = getPermutation();
-      int size = rowType.getFieldCount();
+  private int[] getInverseIndices() {
+    if (inverseIndices == null) {
+      int[] permutation = getPermutationIndices();
+      int size = size();
       int[] result = new int[size];
       for (int i = 0; i < size; i++) {
         result[permutation[i]] = i;
       }
-      inverse = result;
+      inverseIndices = result;
     }
-    return inverse;
+    return inverseIndices;
   }
 
   public int size() {
@@ -202,11 +202,11 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
               new Comparable[]{(Comparable) ((Object[]) o)[0]},
               Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class));
     }
-    int keySize = Math.max(1, keyFields.size());
-    int valueSize = rowType.getFieldCount() - keySize;
+    int keySize = keyFields.size();
+    int valueSize = size() - keySize;
     Comparable[] keys = new Comparable[keySize];
     Comparable[] values = new Comparable[valueSize];
-    int[] permutation = getPermutation();
+    int[] permutation = getPermutationIndices();
     int index = 0;
     for (int i = 0; i < keySize; i++) {
       keys[index++] = (Comparable) objs[permutation[i]];
@@ -226,7 +226,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
     Object[] keys = (Object[]) key;
     Object[] values = (Object[]) value;
-    int[] inverse = getInverse();
+    int[] inverse = getInverseIndices();
     Object[] row = new Object[inverse.length];
     for (int i = 0; i < inverse.length; i++) {
       int index = inverse[i];
