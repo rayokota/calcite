@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Base class for table that reads CSV files.
@@ -290,17 +290,17 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public Iterator iterator() {
-      return toList().iterator();
+      return toStream().iterator();
     }
 
     @Override
     public Object[] toArray() {
-      return toList().toArray();
+      return toStream().toArray();
     }
 
     @Override
     public Object[] toArray(Object[] a) {
-      return toList().toArray(a);
+      return toStream().toArray();
     }
 
     @Override
@@ -341,8 +341,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
       map.clear();
     }
 
-    private List toList() {
-      return map.entrySet().stream().map(SortedTable.this::getRow).collect(Collectors.toList());
+    private Stream toStream() {
+      return map.entrySet().stream().map(SortedTable.this::getRow);
     }
   }
 }
