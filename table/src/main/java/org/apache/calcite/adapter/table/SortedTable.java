@@ -148,12 +148,12 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
       public Enumerator<T> enumerator() {
         //noinspection unchecked
         return (Enumerator<T>) Linq4j.iterableEnumerator(
-                () -> Iterators.transform(getModifiableCollection().iterator(), SortedTable::toRow));
+                () -> Iterators.transform(getModifiableCollection().iterator(), SortedTable::toArray));
       }
     };
   }
 
-  public static Object[] toRow(Object o) {
+  public static Object[] toArray(Object o) {
     return o.getClass().isArray() ? (Object[]) o : new Object[]{o};
   }
 

@@ -24,9 +24,11 @@ import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.calcite.adapter.table.AbstractTable;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
@@ -38,6 +40,7 @@ import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -159,6 +162,21 @@ public class AvroTable<E> extends AbstractTable<E> {
     dataFileWriter.append(user3);
     dataFileWriter.append(user4);
     dataFileWriter.close();
+
+    /*
+    Schema emptyRecordSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"EmptyRecord\",\"fields\":[]}");
+    GenericRecord emptyRecord = (GenericRecord) GenericData.get().newRecord(null, emptyRecordSchema);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    BinaryEncoder encoder = EncoderFactory.get().directBinaryEncoder(out, null);
+    DatumWriter<GenericRecord> writer = new GenericDatumWriter<>(emptyRecordSchema);
+    writer.write(emptyRecord, encoder);
+    encoder.flush();
+    out.close();
+    byte[] bytes = out.toByteArray();
+    DatumReader<GenericRecord> reader = new GenericDatumReader<>(emptyRecordSchema);
+    Object o = reader.read(null, DecoderFactory.get().binaryDecoder(bytes, null));
+    System.out.println("*** o " + o);
+    */
   }
 }
 

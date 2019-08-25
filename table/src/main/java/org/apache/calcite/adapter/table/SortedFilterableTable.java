@@ -58,7 +58,7 @@ public class SortedFilterableTable extends SortedTable
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
         return new SortedTableEnumerator<>(Iterators.<Object, Object[]>transform(
-                getModifiableCollection().iterator(), SortedTable::toRow),
+                getModifiableCollection().iterator(), SortedTable::toArray),
                 cancelFlag, filterValues, fields);
       }
     };

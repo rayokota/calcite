@@ -26,7 +26,6 @@ import org.apache.calcite.schema.ScannableTable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -52,7 +51,7 @@ public class SortedScannableTable extends SortedTable
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
         return new SortedTableEnumerator<>(Iterators.<Object, Object[]>transform(
-                getModifiableCollection().iterator(), SortedTable::toRow),
+                getModifiableCollection().iterator(), SortedTable::toArray),
                 cancelFlag, null, fields);
       }
     };

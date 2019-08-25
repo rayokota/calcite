@@ -50,7 +50,7 @@ class SortedTableEnumerator<E> implements Enumerator<E> {
         if (cancelFlag.get()) {
           return false;
         }
-        final Object[] row = rows.hasNext() ? SortedTable.toRow(rows.next()) : null;
+        final Object[] row = rows.hasNext() ? SortedTable.toArray(rows.next()) : null;
         if (row == null) {
           current = null;
           return false;
