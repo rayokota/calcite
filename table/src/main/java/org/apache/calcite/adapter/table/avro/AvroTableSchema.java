@@ -108,7 +108,7 @@ public class AvroTableSchema extends AbstractTableSchema {
     }
   }
 
-  private static RelDataType getRowType(Schema schema) {
+  public static RelDataType getRowType(Schema schema) {
     Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(schema);
     List<String> names = types.left;
     List<SortedTableColumnType> fieldTypes = types.right;

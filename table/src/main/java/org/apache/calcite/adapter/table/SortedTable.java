@@ -192,7 +192,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
-  private Pair<Object, Object> getKeyValue(Object o) {
+  private Pair<Object, Object> toKeyValue(Object o) {
     if (!o.getClass().isArray()) {
       return new Pair<>(o, o);
     }
@@ -219,7 +219,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return new Pair<>(keys, values);
   }
 
-  private Object getRow(Map.Entry entry) {
+  private Object toRow(Map.Entry entry) {
     Object key = entry.getKey();
     Object value = entry.getValue();
     if (!key.getClass().isArray()) {
@@ -285,7 +285,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean contains(Object o) {
-      Pair<?, ?> keyValue = getKeyValue(o);
+      Pair<?, ?> keyValue = toKeyValue(o);
       return map.containsKey(keyValue.left);
     }
 
@@ -306,14 +306,14 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean add(Object o) {
-      Pair<?, ?> keyValue = getKeyValue(o);
+      Pair<?, ?> keyValue = toKeyValue(o);
       map.put(keyValue.left, keyValue.right);
       return true;
     }
 
     @Override
     public boolean remove(Object o) {
-      Pair<?, ?> keyValue = getKeyValue(o);
+      Pair<?, ?> keyValue = toKeyValue(o);
       return map.remove(keyValue.left) != null;
     }
 
@@ -343,7 +343,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     }
 
     private Stream toStream() {
-      return map.entrySet().stream().map(SortedTable.this::getRow);
+      return map.entrySet().stream().map(SortedTable.this::toRow);
     }
   }
 }
