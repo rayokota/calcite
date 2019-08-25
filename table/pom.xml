@@ -59,7 +59,7 @@ limitations under the License.
     <dependency>
       <groupId>io.kcache</groupId>
       <artifactId>kcache</artifactId>
-      <version>1.0.1</version>
+      <version>1.0.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.avro</groupId>

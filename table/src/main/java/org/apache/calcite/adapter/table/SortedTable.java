@@ -55,6 +55,9 @@ import java.util.stream.Stream;
  * Base class for table that reads CSV files.
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
+
+  public static final Comparable[] EMPTY_VALUE = new Comparable[0];
+
   private RelDataType rowType;
   private final AbstractTable rows;
   private final List<String> keyFields;
@@ -193,7 +196,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
   private Pair<Comparable[], Comparable[]> toKeyValue(Object o) {
     if (!o.getClass().isArray()) {
-      return new Pair<>(new Comparable[]{(Comparable) o}, new Comparable[0]);
+      return new Pair<>(new Comparable[]{(Comparable) o}, EMPTY_VALUE);
     }
     Object[] objs = (Object[]) o;
     if (keyFields.isEmpty()) {
@@ -234,7 +237,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   }
 
   public static class MapComparator implements Comparator<Comparable[]> {
-    private final Comparator<Comparable> defaultComparator = Comparator.<Comparable>nullsFirst(Comparator.<Comparable>naturalOrder());
+    private final Comparator<Comparable> defaultComparator =
+            Comparator.<Comparable>nullsFirst(Comparator.<Comparable>naturalOrder());
 
     @Override
     public int compare(Comparable[] o1, Comparable[] o2) {
