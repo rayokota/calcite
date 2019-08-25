@@ -56,7 +56,7 @@ import java.util.stream.Stream;
  */
 public abstract class SortedTable extends AbstractQueryableTable implements ModifiableTable {
   private RelDataType rowType;
-  private final AbstractTable<?> rows;
+  private final AbstractTable rows;
   private final List<String> keyFields;
   private int[] permutationIndices;
   private int[] inverseIndices;
@@ -66,13 +66,13 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     super(Object[].class);
     String kindName = (String) operand.get("kind");
     Kind kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
-    AbstractTable<?> rows = null;
+    AbstractTable rows = null;
     switch (kind) {
       case AVRO:
-        rows = new AvroTable<>(this);
+        rows = new AvroTable(this);
         break;
       case CSV:
-        rows = new CsvTable<>(this);
+        rows = new CsvTable(this);
         break;
       default:
         throw new IllegalArgumentException("Unsupported kind " + kind);
@@ -137,9 +137,8 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
             updateColumnList, sourceExpressionList, flattened);
   }
 
-  @SuppressWarnings("unchecked")
   @Override public Collection getModifiableCollection() {
-    return new MapWrapper((Map<Object, Object>) rows);
+    return new MapWrapper(rows);
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -192,9 +191,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return integers;
   }
 
-  private Pair<Object, Object> toKeyValue(Object o) {
+  private Pair<Comparable[], Comparable[]> toKeyValue(Object o) {
     if (!o.getClass().isArray()) {
-      return new Pair<>(o, o);
+      return new Pair<>(new Comparable[]{(Comparable) o}, new Comparable[0]);
     }
     Object[] objs = (Object[]) o;
     if (keyFields.isEmpty()) {
@@ -219,14 +218,12 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return new Pair<>(keys, values);
   }
 
-  private Object toRow(Map.Entry entry) {
-    Object key = entry.getKey();
-    Object value = entry.getValue();
-    if (!key.getClass().isArray()) {
-      return key;
+  private Object toRow(Map.Entry<Comparable[], Comparable[]> entry) {
+    Comparable[] keys = entry.getKey();
+    Comparable[] values = entry.getValue();
+    if (keys.length == 1 && values.length == 0) {
+      return keys[0];
     }
-    Object[] keys = (Object[]) key;
-    Object[] values = (Object[]) value;
     int[] inverse = getInverseIndices();
     Object[] row = new Object[inverse.length];
     for (int i = 0; i < inverse.length; i++) {
@@ -236,25 +233,11 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     return row;
   }
 
-  @SuppressWarnings("unchecked")
-  public static class MapComparator implements Comparator<Object> {
-    private final Comparator defaultComparator = Comparator.nullsFirst(Comparator.naturalOrder());
+  public static class MapComparator implements Comparator<Comparable[]> {
+    private final Comparator<Comparable> defaultComparator = Comparator.<Comparable>nullsFirst(Comparator.<Comparable>naturalOrder());
 
     @Override
-    public int compare(Object o1, Object o2) {
-      if (o1.getClass().isArray()) {
-        return new ArrayComparator().compare((Comparable[]) o1, (Comparable[]) o2);
-      } else {
-        return defaultComparator.compare(o1, o2);
-      }
-    }
-  }
-
-  static class ArrayComparator<T extends Comparable<T>> implements Comparator<T[]> {
-    private final Comparator<T> defaultComparator = Comparator.<T>nullsFirst(Comparator.<T>naturalOrder());
-
-    @Override
-    public int compare(T[] o1, T[] o2) {
+    public int compare(Comparable[] o1, Comparable[] o2) {
       for (int i = 0; i < Math.min(o1.length, o2.length); i++) {
         int c = defaultComparator.compare(o1[i], o2[i]);
         if (c != 0) {
@@ -267,9 +250,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
   class MapWrapper implements Collection {
 
-    private final Map<Object, Object> map;
+    private final Map<Comparable[], Comparable[]> map;
 
-    public MapWrapper(Map<Object, Object> map) {
+    public MapWrapper(Map<Comparable[], Comparable[]> map) {
       this.map = map;
     }
 
@@ -285,7 +268,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean contains(Object o) {
-      Pair<?, ?> keyValue = toKeyValue(o);
+      Pair<Comparable[], Comparable[]> keyValue = toKeyValue(o);
       return map.containsKey(keyValue.left);
     }
 
@@ -306,14 +289,14 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
     @Override
     public boolean add(Object o) {
-      Pair<?, ?> keyValue = toKeyValue(o);
+      Pair<Comparable[], Comparable[]> keyValue = toKeyValue(o);
       map.put(keyValue.left, keyValue.right);
       return true;
     }
 
     @Override
     public boolean remove(Object o) {
-      Pair<?, ?> keyValue = toKeyValue(o);
+      Pair<Comparable[], Comparable[]> keyValue = toKeyValue(o);
       return map.remove(keyValue.left) != null;
     }
 

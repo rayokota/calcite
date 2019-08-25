@@ -20,53 +20,42 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.io.EncoderFactory;
 import org.apache.calcite.adapter.table.AbstractTable;
 import org.apache.calcite.adapter.table.SortedTable;
-import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
-import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.TreeMap;
 
 /**
  * Base class for table that reads CSV files.
- *
- * @param <E> Row type
  */
-public class AvroTable<E> extends AbstractTable<E> {
-  private SortedTable sortedTable;
-  private final Map<E, E> rows;
+public class AvroTable extends AbstractTable {
+  private final SortedTable sortedTable;
+  private final Map<Comparable[], Comparable[]> rows;
 
   private final DecoderFactory decoderFactory = DecoderFactory.get();
 
   /** Creates a CsvTable. */
   public AvroTable(SortedTable sortedTable) {
     this.sortedTable = sortedTable;
-    this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
+    this.rows = new TreeMap<>(new SortedTable.MapComparator());
   }
 
   @Override
@@ -75,7 +64,7 @@ public class AvroTable<E> extends AbstractTable<E> {
   }
 
   @Override
-  protected Map<E, E> delegate() {
+  protected Map<Comparable[], Comparable[]> delegate() {
     return rows;
   }
 
@@ -87,22 +76,24 @@ public class AvroTable<E> extends AbstractTable<E> {
     }
     try {
       Schema schema = (Schema) operand.get("schema");
-      Collection<E> modifiableCollection = (Collection<E>) sortedTable.getModifiableCollection();
+      Collection modifiableCollection = sortedTable.getModifiableCollection();
       DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
       Source json = getSource(operand, schema.getName() + ".json");
       if (json != null) {
         BufferedReader reader = Files.newBufferedReader(Paths.get(json.path()));
         String line;
         while ((line = reader.readLine()) != null) {
-          E row = convertRow(datumReader.read(null, decoderFactory.jsonDecoder(schema, line)));
+          Object row = convertRow(datumReader.read(null, decoderFactory.jsonDecoder(schema, line)));
+          //noinspection unchecked
           modifiableCollection.add(row);
         }
       }
       Source avro = getSource(operand, schema.getName() + ".avro");
       if (avro != null) {
-        DataFileReader<GenericRecord> dataFileReader = new DataFileReader<GenericRecord>(avro.file(), datumReader);
+        DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(avro.file(), datumReader);
         for (GenericRecord record : dataFileReader) {
-          E row = convertRow(record);
+          Object row = convertRow(record);
+          //noinspection unchecked
           modifiableCollection.add(row);
         }
       }
@@ -128,15 +119,14 @@ public class AvroTable<E> extends AbstractTable<E> {
     return file.exists() ? Sources.of(path.toFile()) : null;
   }
 
-  @SuppressWarnings("unchecked")
-  private E convertRow(GenericRecord record) {
+  private Object convertRow(GenericRecord record) {
     int size = record.getSchema().getFields().size();
     Object[] result = new Object[size];
     for (int i = 0; i < size; i++) {
       Object field = record.get(i);
       result[i] = field;
     }
-    return size == 1 ? (E) result[0] : (E) result;
+    return size == 1 ? result[0] : result;
   }
 
   public static void main(String[] args) throws Exception {
@@ -154,8 +144,8 @@ public class AvroTable<E> extends AbstractTable<E> {
     user4.put("name", "Dan");
     user4.put("age", 73);
     File file = new File("/tmp/users.avro");
-    DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<GenericRecord>(schema);
-    DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<GenericRecord>(datumWriter);
+    DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+    DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter);
     dataFileWriter.create(schema, file);
     dataFileWriter.append(user1);
     dataFileWriter.append(user2);

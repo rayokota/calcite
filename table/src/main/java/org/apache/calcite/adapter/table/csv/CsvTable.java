@@ -25,7 +25,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -48,12 +47,10 @@ import java.util.TreeMap;
 
 /**
  * Base class for table that reads CSV files.
- *
- * @param <E> Row type
  */
-public class CsvTable<E> extends AbstractTable<E> {
-  private SortedTable sortedTable;
-  private final Map<E, E> rows;
+public class CsvTable extends AbstractTable {
+  private final SortedTable sortedTable;
+  private final Map<Comparable[], Comparable[]> rows;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -70,7 +67,7 @@ public class CsvTable<E> extends AbstractTable<E> {
   /** Creates a CsvTable. */
   public CsvTable(SortedTable sortedTable) {
     this.sortedTable = sortedTable;
-    this.rows = new TreeMap<E, E>(new SortedTable.MapComparator());
+    this.rows = new TreeMap<>(new SortedTable.MapComparator());
   }
 
   @Override
@@ -79,11 +76,10 @@ public class CsvTable<E> extends AbstractTable<E> {
   }
 
   @Override
-  protected Map<E, E> delegate() {
+  protected Map<Comparable[], Comparable[]> delegate() {
     return rows;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void configure(Map<String, ?> operand) {
     final String fileName = (String) operand.get("file");
@@ -95,15 +91,15 @@ public class CsvTable<E> extends AbstractTable<E> {
         rowType = CsvTableSchema.getRowType(source);
         sortedTable.setRowType(rowType);
       }
-      Collection<E> modifiableCollection = (Collection<E>) sortedTable.getModifiableCollection();
+      Collection modifiableCollection = sortedTable.getModifiableCollection();
       try (CSVReader reader = openCsv(source)) {
         reader.readNext(); // skip header row
         List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
-        //noinspection unchecked
-        RowConverter<E> rowConverter = (RowConverter<E>) converter(fieldTypes);
+        RowConverter<?> rowConverter = converter(fieldTypes);
         String[] strings = reader.readNext();
         while (strings != null) {
-          E row = rowConverter.convertRow(strings);
+          Object row = rowConverter.convertRow(strings);
+          //noinspection unchecked
           modifiableCollection.add(row);
           strings = reader.readNext();
         }

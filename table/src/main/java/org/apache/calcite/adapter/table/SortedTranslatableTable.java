@@ -34,7 +34,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**

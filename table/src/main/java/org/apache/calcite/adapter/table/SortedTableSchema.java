@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema

@@ -20,6 +20,6 @@ import com.google.common.collect.ForwardingMap;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.kafka.common.Configurable;
 
-public abstract class AbstractTable<E> extends ForwardingMap<E, E> implements Configurable {
+public abstract class AbstractTable extends ForwardingMap<Comparable[], Comparable[]> implements Configurable {
   public abstract RelDataType getRowType();
 }
