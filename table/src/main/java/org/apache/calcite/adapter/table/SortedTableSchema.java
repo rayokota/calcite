@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.table.SortedTable.Flavor;
 import org.apache.calcite.adapter.table.SortedTable.Kind;
 import org.apache.calcite.adapter.table.avro.AvroTableSchema;
 import org.apache.calcite.adapter.table.csv.CsvTableSchema;
+import org.apache.calcite.adapter.table.kafka.KafkaTableSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
@@ -59,6 +60,9 @@ public class SortedTableSchema extends AbstractSchema {
         break;
       case CSV:
         tableMap = new CsvTableSchema();
+        break;
+      case KAFKA:
+        tableMap = new KafkaTableSchema();
         break;
       default:
         throw new IllegalArgumentException("Unsupported kind " + kind);

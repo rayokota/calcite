@@ -20,6 +20,7 @@ import com.google.common.collect.Iterators;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.table.avro.AvroTable;
 import org.apache.calcite.adapter.table.csv.CsvTable;
+import org.apache.calcite.adapter.table.kafka.KafkaTable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -76,6 +77,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
         break;
       case CSV:
         rows = new CsvTable(this);
+        break;
+      case KAFKA:
+        rows = new KafkaTable(this);
         break;
       default:
         throw new IllegalArgumentException("Unsupported kind " + kind);
@@ -167,6 +171,10 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
     this.rowType = rowType;
   }
 
+  public List<String> getKeyFields() {
+    return keyFields;
+  }
+
   @Override
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (rowType == null) {
@@ -205,8 +213,9 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
               new Comparable[]{(Comparable) ((Object[]) o)[0]},
               Arrays.copyOfRange(((Object[]) o), 1, ((Object[]) o).length, Comparable[].class));
     }
+    int size = size();
     int keySize = keyFields.size();
-    int valueSize = size() - keySize;
+    int valueSize = size - keySize;
     Comparable[] keys = new Comparable[keySize];
     Comparable[] values = new Comparable[valueSize];
     int[] permutation = getPermutationIndices();
@@ -215,7 +224,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
       keys[index++] = (Comparable) objs[permutation[i]];
     }
     index = 0;
-    for (int i = keySize; i < valueSize; i++) {
+    for (int i = keySize; i < size; i++) {
       values[index++] = (Comparable) objs[permutation[i]];
     }
     return new Pair<>(keys, values);

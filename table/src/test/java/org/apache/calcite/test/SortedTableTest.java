@@ -174,10 +174,50 @@ public class SortedTableTest {
     sql("model", "select * from EMPS").ok();
   }
 
-  @Test public void testCreateTable() throws SQLException {
-    Properties info = new Properties();
-    info.put("model", jsonPath("model"));
+  @Test public void testAvroCreateTable() throws SQLException {
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:",
+                         CalciteAssert.propBuilder()
+                                 .set(CalciteConnectionProperty.MODEL, jsonPath("avro"))
+                                 .set(CalciteConnectionProperty.PARSER_FACTORY,
+                                         "org.apache.calcite.sql.parser.parserextension"
+                                                 + ".ExtensionSqlParserImpl#FACTORY")
+                                 .build())) {
 
+      Statement s = connection.createStatement();
+      boolean b = s.execute("create table t (i int not null, constraint pk primary key (i))");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into t values 1");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t values 3");
+      assertThat(x, is(1));
+
+      ResultSet resultSet = s.executeQuery("select * from t");
+      output(resultSet);
+      resultSet.close();
+
+      s = connection.createStatement();
+      b = s.execute("create table t2 (i int not null, j int not null, k varchar, constraint pk primary key (j, i))");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into t2 values (1, 2, 'hi')");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t2 values (3, 4, 'world')");
+      assertThat(x, is(1));
+
+      resultSet = s.executeQuery("select * from t2");
+      output(resultSet);
+      resultSet.close();
+
+      String sql = "select * from \"users\"";
+      resultSet = s.executeQuery(sql);
+      output(resultSet);
+      resultSet.close();
+
+      s.close();
+    }
+  }
+
+  @Test public void testCsvCreateTable() throws SQLException {
     try (Connection connection =
                  DriverManager.getConnection("jdbc:calcite:",
       CalciteAssert.propBuilder()
@@ -295,6 +335,48 @@ public class SortedTableTest {
   @Test public void testAvro() throws SQLException {
     sql("avro", "select * from \"users\"").ok();
     sql("avro", "select \"name\" from \"users\"").ok();
+  }
+
+  @Test public void testKafka() throws SQLException {
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:",
+                         CalciteAssert.propBuilder()
+                                 .set(CalciteConnectionProperty.MODEL, jsonPath("kafka"))
+                                 .set(CalciteConnectionProperty.PARSER_FACTORY,
+                                         "org.apache.calcite.sql.parser.parserextension"
+                                                 + ".ExtensionSqlParserImpl#FACTORY")
+                                 .build())) {
+
+      Statement s = connection.createStatement();
+      boolean b = s.execute("create table t (i int not null, constraint pk primary key (i))");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into t values 1");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t values 3");
+      assertThat(x, is(1));
+
+      ResultSet resultSet = s.executeQuery("select * from t");
+      output(resultSet);
+      resultSet.close();
+
+      s = connection.createStatement();
+      b = s.execute("create table t2 (i int not null, j int not null, k varchar, constraint pk primary key (j, i))");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into t2 values (1, 2, 'hi')");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t2 values (3, 4, 'world')");
+      assertThat(x, is(1));
+
+      resultSet = s.executeQuery("select * from t2");
+      output(resultSet);
+      resultSet.close();
+
+      s.close();
+    }
+  }
+
+  @Test public void testKafka2() throws SQLException {
+    sql("kafka", "select * from t2").ok();
   }
 
   @Test public void testCustomTable() throws SQLException {

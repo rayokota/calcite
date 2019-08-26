@@ -20,6 +20,8 @@ import com.google.common.collect.Maps;
 import io.kcache.Cache;
 import io.kcache.KafkaCache;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -27,8 +29,10 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.calcite.adapter.table.AbstractTable;
 import org.apache.calcite.adapter.table.SortedTable;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
@@ -41,12 +45,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Base class for table that reads CSV files.
@@ -79,10 +86,13 @@ public class KafkaTable extends AbstractTable {
       // TODO support custom tables
       throw new IllegalStateException("Custom tables not yet supported for Kafka");
     }
+    Schema schema = (Schema) operand.get("schema");
+    if (schema == null) {
+      schema = toSchema(sortedTable.getRowType(), sortedTable.getKeyFields());
+    }
     final String bootstrapServers = (String) operand.get("bootstrapServers");
     this.bootstrapServers = bootstrapServers;
-    final Schema schema = (Schema) operand.get("schema");
-    Pair<Schema, Schema> schemas = getKeyValueSchemas(schema);
+    Pair<Schema, Schema> schemas = getKeyValueSchemas(null);
     KafkaTableSerde keySerde = new KafkaTableSerde();
     KafkaTableSerde valueSerde = new KafkaTableSerde();
     keySerde.configure(Collections.singletonMap("schema", schemas.left), true);
@@ -93,8 +103,59 @@ public class KafkaTable extends AbstractTable {
     this.rows = cache;
   }
 
-  private Pair<Schema, Schema> getKeyValueSchemas(Schema schema) {
+  private Schema toSchema(RelDataType rowType, List<String> keyFields) {
+    // TODO fix unknown
+    SchemaBuilder.FieldAssembler<Schema> schemaBuilder =
+            SchemaBuilder.record("unknown").fields();
+    Map<String, Integer> keyIndices = Ord.zip(keyFields).stream().collect(Collectors.toMap(o -> o.e, o -> o.i));
+    for (RelDataTypeField field : rowType.getFieldList()) {
+        //schemaBuilder.name(field.getName()).
+
+    }
+
     return null;
+  }
+
+  private Pair<Schema, Schema> getKeyValueSchemas(Schema schema) {
+    SchemaBuilder.FieldAssembler<Schema> keySchemaBuilder =
+            SchemaBuilder.record(schema.getName() + "-key").fields();
+    SchemaBuilder.FieldAssembler<Schema> valueSchemaBuilder =
+            SchemaBuilder.record(schema.getName() + "-value").fields();
+    int size = schema.getFields().size();
+    Field[] keyFields = new Field[size];
+    Field[] valueFields = new Field[size];
+    int valueIndex = 0;
+    for (Field field : schema.getFields()) {
+      Integer keyIndex = (Integer) field.schema().getObjectProp("sql.key.index");
+      if (keyIndex != null) {
+        keyFields[keyIndex] = field;
+      } else {
+        keyFields[valueIndex++] = field;
+      }
+    }
+    int keyCount = 0;
+    for (int i = 0; i < keyFields.length; i++) {
+      Field field = keyFields[i];
+      if (field == null) {
+        break;
+      }
+      keySchemaBuilder = keySchemaBuilder.name(field.name()).type(field.schema()).withDefault(field.defaultVal());
+      keyCount++;
+    }
+    valueIndex = 0;
+    if (keyCount == 0) {
+      // Use first value field as key
+      Field field = valueFields[valueIndex++];
+      keySchemaBuilder = keySchemaBuilder.name(field.name()).type(field.schema()).withDefault(field.defaultVal());
+    }
+    for (; valueIndex < valueFields.length; valueIndex++) {
+      Field field = valueFields[valueIndex];
+      if (field == null) {
+        break;
+      }
+      valueSchemaBuilder = valueSchemaBuilder.name(field.name()).type(field.schema()).withDefault(field.defaultVal());
+    }
+    return Pair.of(keySchemaBuilder.endRecord(), valueSchemaBuilder.endRecord());
   }
 }
 

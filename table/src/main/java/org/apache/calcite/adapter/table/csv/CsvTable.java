@@ -84,28 +84,29 @@ public class CsvTable extends AbstractTable {
   public void configure(Map<String, ?> operand) {
     final String fileName = (String) operand.get("file");
     final Source source = getSource(operand, fileName);
-    if (source != null) {
-      RelDataType rowType = sortedTable.getRowType();
-      if (rowType == null) {
-        // rowType will be null for custom tables
-        rowType = CsvTableSchema.getRowType(source);
-        sortedTable.setRowType(rowType);
+    if (source == null) {
+      return;
+    }
+    RelDataType rowType = sortedTable.getRowType();
+    if (rowType == null) {
+      // rowType will be null for custom tables
+      rowType = CsvTableSchema.getRowType(source);
+      sortedTable.setRowType(rowType);
+    }
+    Collection modifiableCollection = sortedTable.getModifiableCollection();
+    try (CSVReader reader = openCsv(source)) {
+      reader.readNext(); // skip header row
+      List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
+      RowConverter<?> rowConverter = converter(fieldTypes);
+      String[] strings = reader.readNext();
+      while (strings != null) {
+        Object row = rowConverter.convertRow(strings);
+        //noinspection unchecked
+        modifiableCollection.add(row);
+        strings = reader.readNext();
       }
-      Collection modifiableCollection = sortedTable.getModifiableCollection();
-      try (CSVReader reader = openCsv(source)) {
-        reader.readNext(); // skip header row
-        List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
-        RowConverter<?> rowConverter = converter(fieldTypes);
-        String[] strings = reader.readNext();
-        while (strings != null) {
-          Object row = rowConverter.convertRow(strings);
-          //noinspection unchecked
-          modifiableCollection.add(row);
-          strings = reader.readNext();
-        }
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

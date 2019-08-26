@@ -76,6 +76,9 @@ public class AvroTable extends AbstractTable {
     }
     try {
       Schema schema = (Schema) operand.get("schema");
+      if (schema == null) {
+        return;
+      }
       Collection modifiableCollection = sortedTable.getModifiableCollection();
       DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
       Source json = getSource(operand, schema.getName() + ".json");
