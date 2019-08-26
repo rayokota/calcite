@@ -186,8 +186,6 @@ public class SqlCreateTableExtension extends SqlCreateTable {
             };
 
     SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
-    SortedTable.Kind kind = schemaPlus.getKind();
-    SortedTable.Flavor flavor = schemaPlus.getFlavor();
     if (schemaPlus.getTable(pair.right) != null) {
       // Table exists.
       if (!ifNotExists) {
@@ -198,8 +196,7 @@ public class SqlCreateTableExtension extends SqlCreateTable {
       return;
     }
     // Table does not exist. Create it.
-    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(
-            ImmutableMap.of("kind", kind.name(), "flavor", flavor.name()), rowType, keyFields));
+    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(schemaPlus.getOperand(), rowType, keyFields));
     /*
     if (pair.left.plus().getTable(pair.right) != null) {
       // Table exists.

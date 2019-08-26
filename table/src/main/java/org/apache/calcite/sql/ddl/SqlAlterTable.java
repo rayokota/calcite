@@ -164,8 +164,6 @@ public class SqlAlterTable extends SqlAlter
               }
             };
     SortedTableSchema schemaPlus = schema.plus().unwrap(SortedTableSchema.class);
-    SortedTable.Kind kind = schemaPlus.getKind();
-    SortedTable.Flavor flavor = schemaPlus.getFlavor();
     if (schemaPlus.getTable(pair.right) == null) {
       // Table does not exists.
       if (!ifExists) {
@@ -176,8 +174,7 @@ public class SqlAlterTable extends SqlAlter
       return;
     }
     // Table does not exist. Create it.
-    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(
-            ImmutableMap.of("kind", kind.name(), "flavor", flavor.name()), rowType, keyFields));
+    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(schemaPlus.getOperand(), rowType, keyFields));
     /*
     pair.left.add(pair.right,
             new MutableArrayTable(pair.right,

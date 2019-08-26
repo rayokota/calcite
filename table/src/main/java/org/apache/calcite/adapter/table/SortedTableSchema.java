@@ -40,6 +40,7 @@ import java.util.Map;
  * is a CSV file in that directory.
  */
 public class SortedTableSchema extends AbstractSchema {
+  private final Map<String, Object> operand;
   private final Kind kind;
   private final Flavor flavor;
   private final AbstractTableSchema tableMap;
@@ -48,7 +49,7 @@ public class SortedTableSchema extends AbstractSchema {
    * Creates a CSV schema.
    */
   public SortedTableSchema(Map<String, Object> operand) {
-    super();
+    this.operand = operand;
     String flavorName = (String) operand.getOrDefault("flavor", Flavor.SCANNABLE.name());
     this.flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     String kindName = (String) operand.get("kind");
@@ -69,6 +70,10 @@ public class SortedTableSchema extends AbstractSchema {
     }
     tableMap.configure(operand);
     this.tableMap = tableMap;
+  }
+
+  public Map<String, Object> getOperand() {
+    return operand;
   }
 
   public Kind getKind() {

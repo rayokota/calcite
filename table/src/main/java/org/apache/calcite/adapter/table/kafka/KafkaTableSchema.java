@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.table.kafka;
 
 import io.kcache.Cache;
 import io.kcache.KafkaCache;
+import io.kcache.KafkaCacheConfig;
 import io.kcache.KeyValue;
 import io.kcache.KeyValueIterator;
 import org.apache.avro.Schema;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
@@ -65,7 +67,11 @@ public class KafkaTableSchema extends AbstractTableSchema {
   public void configure(Map<String, ?> operand) {
     final String bootstrapServers = (String) operand.get("bootstrapServers");
     this.bootstrapServers = bootstrapServers;
-    this.schemas = new KafkaCache<String, String>(bootstrapServers, Serdes.String(), Serdes.String());
+    Properties props = new Properties();
+    props.put(KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    // TODO fix dummy
+    props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, "_meta_dummy_123");
+    this.schemas = new KafkaCache<String, String>(new KafkaCacheConfig(props), Serdes.String(), Serdes.String());
     this.schemas.init();
     init(operand);
   }
