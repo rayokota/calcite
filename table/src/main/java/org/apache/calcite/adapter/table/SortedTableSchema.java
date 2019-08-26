@@ -108,21 +108,22 @@ public class SortedTableSchema extends AbstractSchema {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType) {
-      return createTable(operand, rowType, Collections.emptyList());
+  public static SortedTable createTable(String name, Map<String, Object> operand, RelDataType rowType) {
+      return createTable(name, operand, rowType, Collections.emptyList());
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */
-  public static SortedTable createTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
+  public static SortedTable createTable(String name, Map<String, Object> operand,
+                                        RelDataType rowType, List<String> keyFields) {
     String flavorName = (String) operand.getOrDefault("flavor", Flavor.SCANNABLE.name());
     Flavor flavor = Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     switch (flavor) {
       case TRANSLATABLE:
-        return new SortedTranslatableTable(operand, rowType, keyFields);
+        return new SortedTranslatableTable(name, operand, rowType, keyFields);
       case SCANNABLE:
-        return new SortedScannableTable(operand, rowType, keyFields);
+        return new SortedScannableTable(name, operand, rowType, keyFields);
       case FILTERABLE:
-        return new SortedFilterableTable(operand, rowType, keyFields);
+        return new SortedFilterableTable(name, operand, rowType, keyFields);
       default:
         throw new AssertionError("Unknown flavor " + flavor);
     }

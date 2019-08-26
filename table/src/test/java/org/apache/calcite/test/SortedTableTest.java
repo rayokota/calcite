@@ -352,10 +352,9 @@ public class SortedTableTest {
       assertThat(b, is(false));
       int x = s.executeUpdate("insert into t values 1");
       //TODO fix ret
-      //assertThat(x, is(1));
+      assertThat(x, is(1));
       x = s.executeUpdate("insert into t values 3");
-      //TODO fix ret
-      //assertThat(x, is(1));
+      assertThat(x, is(1));
 
       ResultSet resultSet = s.executeQuery("select * from t");
       output(resultSet);

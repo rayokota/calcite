@@ -100,8 +100,9 @@ public class AvroTableSchema extends AbstractTableSchema {
         Schema avroSchema = parser.parse(source.file());
         configs.put("schema", avroSchema);
         // TODO use primary key annotation
-        final Table table = SortedTableSchema.createTable(configs, getRowType(avroSchema));
-        tableMap.put(avroSchema.getName(), table);
+        String name = avroSchema.getName();
+        final Table table = SortedTableSchema.createTable(name, configs, getRowType(avroSchema));
+        tableMap.put(name, table);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);

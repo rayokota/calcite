@@ -36,7 +36,7 @@ public class SortedTableFactory implements TableFactory<SortedTable> {
 
   public SortedTable create(SchemaPlus schema, String name,
                             Map<String, Object> operand, RelDataType rowType) {
-    return SortedTableSchema.createTable(operand, rowType);
+    return SortedTableSchema.createTable(name, operand, rowType);
   }
 }
 

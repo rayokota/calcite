@@ -174,7 +174,8 @@ public class SqlAlterTable extends SqlAlter
       return;
     }
     // Table does not exist. Create it.
-    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(schemaPlus.getOperand(), rowType, keyFields));
+    String tableName = name.getSimple();
+    schemaPlus.add(tableName, SortedTableSchema.createTable(tableName, schemaPlus.getOperand(), rowType, keyFields));
     /*
     pair.left.add(pair.right,
             new MutableArrayTable(pair.right,

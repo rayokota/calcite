@@ -103,8 +103,9 @@ public class CsvTableSchema extends AbstractTableSchema {
       final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
       if (sourceSansCsv != null) {
         configs.put("file", source.file().getName());
-        final Table table = SortedTableSchema.createTable(configs, getRowType(source));
-        tableMap.put(sourceSansCsv.relative(baseSource).path(), table);
+        String name  = sourceSansCsv.relative(baseSource).path();
+        final Table table = SortedTableSchema.createTable(name, configs, getRowType(source));
+        tableMap.put(name, table);
       }
     }
   }

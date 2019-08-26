@@ -37,8 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedScannableTable extends SortedTable
     implements ScannableTable {
   /** Creates a CsvScannableTable. */
-  public SortedScannableTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
-    super(operand, rowType, keyFields);
+  public SortedScannableTable(String name, Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
+    super(name, operand, rowType, keyFields);
   }
 
   public String toString() {

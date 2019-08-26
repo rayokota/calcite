@@ -59,6 +59,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
   public static final Comparable[] EMPTY_VALUE = new Comparable[0];
 
+  private final String name;
   private RelDataType rowType;
   private final AbstractTable rows;
   private final List<String> keyFields;
@@ -66,7 +67,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
   private int[] inverseIndices;
 
   /** Creates a CsvTable. */
-  SortedTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
+  SortedTable(String name, Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
     super(Object[].class);
     String kindName = (String) operand.get("kind");
     Kind kind = Kind.valueOf(kindName.toUpperCase(Locale.ROOT));
@@ -84,6 +85,7 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
       default:
         throw new IllegalArgumentException("Unsupported kind " + kind);
     }
+    this.name = name;
     this.rowType = rowType;
     this.keyFields = keyFields;
     this.rows = rows;
@@ -161,6 +163,10 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
 
   public static Object[] toArray(Object o) {
     return o.getClass().isArray() ? (Object[]) o : new Object[]{o};
+  }
+
+  public String getName() {
+    return name;
   }
 
   public RelDataType getRowType() {

@@ -196,7 +196,8 @@ public class SqlCreateTableExtension extends SqlCreateTable {
       return;
     }
     // Table does not exist. Create it.
-    schemaPlus.add(name.getSimple(), SortedTableSchema.createTable(schemaPlus.getOperand(), rowType, keyFields));
+    String tableName = name.getSimple();
+    schemaPlus.add(tableName, SortedTableSchema.createTable(tableName, schemaPlus.getOperand(), rowType, keyFields));
     /*
     if (pair.left.plus().getTable(pair.right) != null) {
       // Table exists.

@@ -84,8 +84,9 @@ public class KafkaTableSchema extends AbstractTableSchema {
       Schema avroSchema = parser.parse(kv.value);
       configs.put("schema", avroSchema);
       // TODO use primary key annotation
-      final Table table = SortedTableSchema.createTable(configs, AvroTableSchema.getRowType(avroSchema));
-      tableMap.put(avroSchema.getName(), table);
+      String name = avroSchema.getName();
+      final Table table = SortedTableSchema.createTable(name, configs, AvroTableSchema.getRowType(avroSchema));
+      tableMap.put(name, table);
     }
   }
 }

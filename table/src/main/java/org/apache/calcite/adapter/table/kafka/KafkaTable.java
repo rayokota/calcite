@@ -103,8 +103,7 @@ public class KafkaTable extends AbstractTable {
     valueSerde.configure(Collections.singletonMap("schema", schemas.right), false);
     Properties props = new Properties();
     props.put(KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-    // TODO fix dummy
-    props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, "_dummy_123");
+    props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, sortedTable.getName());
     Cache<Comparable[], Comparable[]> cache = new KafkaCache<>(
             new KafkaCacheConfig(props), keySerde, valueSerde, null,
             new InMemoryCache<>(new SortedTable.MapComparator()));
@@ -128,13 +127,17 @@ public class KafkaTable extends AbstractTable {
       // TODO add more types, fix optional, default value
       switch (type) {
         case VARCHAR:
-          schemaBuilder = fieldBuilder.type().optional().stringType();
+          // TODO cleanup
+          //schemaBuilder = fieldBuilder.type().optional().stringType();
+          schemaBuilder = fieldBuilder.type().stringType().noDefault();
           break;
         case BIGINT:
-          schemaBuilder = fieldBuilder.type().optional().longType();
+          //schemaBuilder = fieldBuilder.type().optional().longType();
+          schemaBuilder = fieldBuilder.type().longType().noDefault();
           break;
         case INTEGER:
-          schemaBuilder = fieldBuilder.type().optional().intType();
+          //schemaBuilder = fieldBuilder.type().optional().intType();
+          schemaBuilder = fieldBuilder.type().intType().noDefault();
           break;
         default:
           throw new IllegalArgumentException("Unsupported type " + type);

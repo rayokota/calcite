@@ -42,8 +42,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SortedTranslatableTable extends SortedTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  public SortedTranslatableTable(Map<String, Object> operand, RelDataType rowType, List<String> keyFields) {
-    super(operand, rowType, keyFields);
+  public SortedTranslatableTable(String name, Map<String, Object> operand,
+                                 RelDataType rowType, List<String> keyFields) {
+    super(name, operand, rowType, keyFields);
   }
 
   public String toString() {
