@@ -18,9 +18,7 @@ package org.apache.calcite.sql.ddl;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;

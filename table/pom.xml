@@ -34,7 +34,7 @@ limitations under the License.
     <build.timestamp>${maven.build.timestamp}</build.timestamp>
   </properties>
 
-  <!-- TODO -->
+  <!-- TODO remove? -->
   <repositories>
     <repository>
       <id>confluent</id>

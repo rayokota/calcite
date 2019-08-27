@@ -99,7 +99,6 @@ public class AvroTableSchema extends AbstractTableSchema {
         Schema.Parser parser = new Schema.Parser();
         Schema avroSchema = parser.parse(source.file());
         configs.put("schema", avroSchema);
-        // TODO use primary key annotation
         String name = avroSchema.getName();
         Pair<RelDataType, List<String>> rowType = getRowType(avroSchema);
         final Table table = SortedTableSchema.createTable(name, configs, rowType.left, rowType.right);
@@ -160,8 +159,7 @@ public class AvroTableSchema extends AbstractTableSchema {
       fieldTypes.add(fieldType);
     }
     List<String> keyFields = new ArrayList<>(size);
-    for (int i = 0; i < keyNames.length; i++) {
-      String keyName = keyNames[i];
+    for (String keyName : keyNames) {
       if (keyName == null) {
         break;
       }

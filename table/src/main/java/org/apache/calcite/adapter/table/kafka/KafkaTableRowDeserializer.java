@@ -18,20 +18,13 @@ package org.apache.calcite.adapter.table.kafka;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 public class KafkaTableRowDeserializer implements Deserializer<Comparable[]> {

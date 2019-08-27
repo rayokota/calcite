@@ -16,12 +16,7 @@
  */
 package org.apache.calcite.adapter.table.kafka;
 
-import io.kcache.KafkaCacheConfig;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.adapter.table.avro.AvroTableSchema;
@@ -31,7 +26,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;

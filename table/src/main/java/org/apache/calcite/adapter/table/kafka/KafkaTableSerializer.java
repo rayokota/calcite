@@ -17,21 +17,11 @@
 package org.apache.calcite.adapter.table.kafka;
 
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.generic.GenericRecordBuilder;
-import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.EncoderFactory;
 import org.apache.calcite.adapter.table.SortedTable;
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.schema.Table;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 

@@ -16,41 +16,20 @@
  */
 package org.apache.calcite.adapter.table.kafka;
 
-import com.google.common.collect.Maps;
-import io.kcache.Cache;
-import io.kcache.KafkaCache;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
-import org.apache.calcite.adapter.table.AbstractTable;
-import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.model.ModelHandler;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Map;
 
 public class KafkaTableRowSerializer implements Serializer<Comparable[]> {

@@ -19,20 +19,11 @@ package org.apache.calcite.adapter.table.kafka;
 import io.kcache.Cache;
 import io.kcache.KafkaCache;
 import io.kcache.KafkaCacheConfig;
-import io.kcache.KeyValue;
-import io.kcache.KeyValueIterator;
-import org.apache.avro.Schema;
 import org.apache.calcite.adapter.table.AbstractTableSchema;
-import org.apache.calcite.adapter.table.SortedTableSchema;
-import org.apache.calcite.adapter.table.avro.AvroTableSchema;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.util.Pair;
 import org.apache.kafka.common.serialization.Serdes;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -41,7 +32,6 @@ import java.util.Properties;
  * is a CSV file in that directory.
  */
 public class KafkaTableSchema extends AbstractTableSchema {
-  private String bootstrapServers;
   private Cache<String, Table> tableMap;
 
   /**
@@ -58,14 +48,13 @@ public class KafkaTableSchema extends AbstractTableSchema {
   @Override
   public void configure(Map<String, ?> operand) {
     final String bootstrapServers = (String) operand.get("bootstrapServers");
-    this.bootstrapServers = bootstrapServers;
     Properties props = new Properties();
     props.put(KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     // TODO fix dummy
     props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, "_meta_dummy_123");
     KafkaTableSerde tableSerde = new KafkaTableSerde();
     tableSerde.configure(Collections.singletonMap("bootstrapServers", bootstrapServers), false);
-    this.tableMap = new KafkaCache<String, Table>(new KafkaCacheConfig(props), Serdes.String(), tableSerde);
+    this.tableMap = new KafkaCache<>(new KafkaCacheConfig(props), Serdes.String(), tableSerde);
     this.tableMap.init();
   }
 }

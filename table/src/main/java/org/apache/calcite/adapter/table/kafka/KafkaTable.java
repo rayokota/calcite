@@ -41,9 +41,8 @@ import java.util.stream.Collectors;
  * Base class for table that reads CSV files.
  */
 public class KafkaTable extends AbstractTable {
-  private SortedTable sortedTable;
+  private final SortedTable sortedTable;
   private Schema schema;
-  private String bootstrapServers;
   private Map<Comparable[], Comparable[]> rows;
 
   /** Creates a CsvTable. */
@@ -72,7 +71,6 @@ public class KafkaTable extends AbstractTable {
       schema = toSchema(sortedTable.getRowType(), sortedTable.getKeyFields());
     }
     final String bootstrapServers = (String) operand.get("bootstrapServers");
-    this.bootstrapServers = bootstrapServers;
     Pair<Schema, Schema> schemas = getKeyValueSchemas(schema);
     KafkaTableRowSerde keySerde = new KafkaTableRowSerde();
     KafkaTableRowSerde valueSerde = new KafkaTableRowSerde();
@@ -125,8 +123,7 @@ public class KafkaTable extends AbstractTable {
           throw new IllegalArgumentException("Unsupported type " + type);
       }
     }
-    Schema schema = schemaBuilder.endRecord();
-    return schema;
+    return schemaBuilder.endRecord();
   }
 
   private Pair<Schema, Schema> getKeyValueSchemas(Schema schema) {
