@@ -93,9 +93,8 @@ public class KafkaTable extends AbstractTable {
   }
 
   private Schema toSchema(RelDataType rowType, List<String> keyFields) {
-    // TODO fix unknown
     SchemaBuilder.FieldAssembler<Schema> schemaBuilder =
-            SchemaBuilder.record("unknown").fields();
+            SchemaBuilder.record(sortedTable.getName()).fields();
     Map<String, Integer> keyIndices = Ord.zip(keyFields).stream().collect(Collectors.toMap(o -> o.e, o -> o.i));
     for (RelDataTypeField field : rowType.getFieldList()) {
       SqlTypeName type = field.getType().getSqlTypeName();

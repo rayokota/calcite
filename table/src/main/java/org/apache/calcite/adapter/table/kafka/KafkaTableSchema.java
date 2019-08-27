@@ -50,8 +50,8 @@ public class KafkaTableSchema extends AbstractTableSchema {
     final String bootstrapServers = (String) operand.get("bootstrapServers");
     Properties props = new Properties();
     props.put(KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-    // TODO fix dummy
-    props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, "_meta_dummy_123");
+    // TODO fix _tables
+    props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, "_tables");
     KafkaTableSerde tableSerde = new KafkaTableSerde();
     tableSerde.configure(Collections.singletonMap("bootstrapServers", bootstrapServers), false);
     this.tableMap = new KafkaCache<>(new KafkaCacheConfig(props), Serdes.String(), tableSerde);
