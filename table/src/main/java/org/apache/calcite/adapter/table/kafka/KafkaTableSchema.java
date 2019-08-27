@@ -25,10 +25,14 @@ import org.apache.avro.Schema;
 import org.apache.calcite.adapter.table.AbstractTableSchema;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.adapter.table.avro.AvroTableSchema;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.Pair;
 import org.apache.kafka.common.serialization.Serdes;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -37,15 +41,13 @@ import java.util.Properties;
  * is a CSV file in that directory.
  */
 public class KafkaTableSchema extends AbstractTableSchema {
-  private final Map<String, Table> tableMap;
   private String bootstrapServers;
-  private Cache<String, String> schemas;
+  private Cache<String, Table> tableMap;
 
   /**
    * Creates a CSV schema.
    */
   public KafkaTableSchema() {
-    this.tableMap = new HashMap<>();
   }
 
   @Override
@@ -61,32 +63,9 @@ public class KafkaTableSchema extends AbstractTableSchema {
     props.put(KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     // TODO fix dummy
     props.put(KafkaCacheConfig.KAFKACACHE_TOPIC_CONFIG, "_meta_dummy_123");
-    this.schemas = new KafkaCache<String, String>(new KafkaCacheConfig(props), Serdes.String(), Serdes.String());
-    this.schemas.init();
-    init(operand);
+    KafkaTableSerde tableSerde = new KafkaTableSerde();
+    tableSerde.configure(Collections.singletonMap("bootstrapServers", bootstrapServers), false);
+    this.tableMap = new KafkaCache<String, Table>(new KafkaCacheConfig(props), Serdes.String(), tableSerde);
+    this.tableMap.init();
   }
-
-  private void init(Map<String, ?> operand) {
-    Map<String, Object> configs = new HashMap<>(operand);
-    for (KeyValueIterator<String, String> iter = schemas.all(); iter.hasNext(); ) {
-      KeyValue<String, String> kv = iter.next();
-      Schema.Parser parser = new Schema.Parser();
-      Schema avroSchema = parser.parse(kv.value);
-      configs.put("schema", avroSchema);
-      // TODO use primary key annotation
-      String name = avroSchema.getName();
-      final Table table = SortedTableSchema.createTable(name, configs, AvroTableSchema.getRowType(avroSchema));
-      tableMap.put(name, table);
-    }
-  }
-
-  /*
-  @Override
-  public Table put(String name, Table table) {
-    //SortedTable sortedTable = (SortedTable) table;
-    //schemas.put(name, )
-    tableMap.put(name, table);
-
-  }
-   */
 }

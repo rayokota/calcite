@@ -16,7 +16,6 @@
 
 package org.apache.calcite.adapter.table.kafka;
 
-import org.apache.calcite.schema.Table;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -24,21 +23,21 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
 
-public class KafkaTableSerde implements Serde<Table> {
+public class KafkaTableRowSerde implements Serde<Comparable[]> {
 
-  private final Serde<Table> inner;
+  private final Serde<Comparable[]> inner;
 
-  public KafkaTableSerde() {
-    inner = Serdes.serdeFrom(new KafkaTableSerializer(), new KafkaTableDeserializer());
+  public KafkaTableRowSerde() {
+    inner = Serdes.serdeFrom(new KafkaTableRowSerializer(), new KafkaTableRowDeserializer());
   }
 
   @Override
-  public Serializer<Table> serializer() {
+  public Serializer<Comparable[]> serializer() {
     return inner.serializer();
   }
 
   @Override
-  public Deserializer<Table> deserializer() {
+  public Deserializer<Comparable[]> deserializer() {
     return inner.deserializer();
   }
 

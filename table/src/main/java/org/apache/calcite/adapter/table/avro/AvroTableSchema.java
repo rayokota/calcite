@@ -101,7 +101,8 @@ public class AvroTableSchema extends AbstractTableSchema {
         configs.put("schema", avroSchema);
         // TODO use primary key annotation
         String name = avroSchema.getName();
-        final Table table = SortedTableSchema.createTable(name, configs, getRowType(avroSchema));
+        Pair<RelDataType, List<String>> rowType = getRowType(avroSchema);
+        final Table table = SortedTableSchema.createTable(name, configs, rowType.left, rowType.right);
         tableMap.put(name, table);
       }
     } catch (IOException e) {
@@ -109,18 +110,25 @@ public class AvroTableSchema extends AbstractTableSchema {
     }
   }
 
-  public static RelDataType getRowType(Schema schema) {
-    Pair<List<String>, List<SortedTableColumnType>> types = toColumnTypes(schema);
-    List<String> names = types.left;
-    List<SortedTableColumnType> fieldTypes = types.right;
-    return SortedTableSchema.toRowType(names, fieldTypes);
+  public static Pair<RelDataType, List<String>> getRowType(Schema schema) {
+    Pair<Pair<List<String>, List<SortedTableColumnType>>, List<String>> types = toColumnTypes(schema);
+    List<String> names = types.left.left;
+    List<SortedTableColumnType> fieldTypes = types.left.right;
+    List<String> keyFields = types.right;
+    return Pair.of(SortedTableSchema.toRowType(names, fieldTypes), keyFields);
   }
 
-  private static Pair<List<String>, List<SortedTableColumnType>> toColumnTypes(Schema schema) {
-    final List<String> names = new ArrayList<>();
-    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
+  private static Pair<Pair<List<String>, List<SortedTableColumnType>>, List<String>> toColumnTypes(Schema schema) {
+    int size = schema.getFields().size();
+    final List<String> names = new ArrayList<>(size);
+    final List<SortedTableColumnType> fieldTypes = new ArrayList<>(size);
+    String[] keyNames = new String[size];
     for (Schema.Field field : schema.getFields()) {
       Schema fieldSchema = field.schema();
+      Integer keyIndex = (Integer) field.getObjectProp("sql.key.index");
+      if (keyIndex != null) {
+        keyNames[keyIndex] = field.name();
+      }
       SortedTableColumnType fieldType;
       switch (fieldSchema.getType()) {
         case BOOLEAN:
@@ -151,7 +159,15 @@ public class AvroTableSchema extends AbstractTableSchema {
       names.add(field.name());
       fieldTypes.add(fieldType);
     }
-    return Pair.of(names, fieldTypes);
+    List<String> keyFields = new ArrayList<>(size);
+    for (int i = 0; i < keyNames.length; i++) {
+      String keyName = keyNames[i];
+      if (keyName == null) {
+        break;
+      }
+      keyFields.add(keyName);
+    }
+    return Pair.of(Pair.of(names, fieldTypes), keyFields);
   }
 }
 

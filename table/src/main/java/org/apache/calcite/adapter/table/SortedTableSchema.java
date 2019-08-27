@@ -105,20 +105,18 @@ public class SortedTableSchema extends AbstractSchema {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public static List<SortedTableColumnType> toColumnTypes(RelDataType rowType) {
+  public static Pair<List<String>, List<SortedTableColumnType>> toColumnTypes(RelDataType rowType) {
+    final List<String> names = new ArrayList<>();
     final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
     for (RelDataTypeField field : rowType.getFieldList()) {
+      names.add(field.getName());
       fieldTypes.add(SortedTableColumnType.of(field.getType().getSqlTypeName()));
     }
-    return fieldTypes;
+    return Pair.of(names, fieldTypes);
   }
 
   @Override protected Map<String, Table> getTableMap() {
     return tableMap;
-  }
-
-  public static SortedTable createTable(String name, Map<String, Object> operand, RelDataType rowType) {
-      return createTable(name, operand, rowType, Collections.emptyList());
   }
 
   /** Creates different sub-type of table based on the "flavor" attribute. */

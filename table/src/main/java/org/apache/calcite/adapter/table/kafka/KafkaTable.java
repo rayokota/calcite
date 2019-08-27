@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.table.kafka;
 
-import com.google.common.collect.Maps;
 import io.kcache.Cache;
 import io.kcache.KafkaCache;
 import io.kcache.KafkaCacheConfig;
@@ -24,39 +23,18 @@ import io.kcache.utils.InMemoryCache;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.calcite.adapter.table.AbstractTable;
 import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -64,10 +42,9 @@ import java.util.stream.Collectors;
  */
 public class KafkaTable extends AbstractTable {
   private SortedTable sortedTable;
-  private Map<Comparable[], Comparable[]> rows;
+  private Schema schema;
   private String bootstrapServers;
-  private Schema keySchema;
-  private Schema valueSchema;
+  private Map<Comparable[], Comparable[]> rows;
 
   /** Creates a CsvTable. */
   public KafkaTable(SortedTable sortedTable) {
@@ -97,8 +74,8 @@ public class KafkaTable extends AbstractTable {
     final String bootstrapServers = (String) operand.get("bootstrapServers");
     this.bootstrapServers = bootstrapServers;
     Pair<Schema, Schema> schemas = getKeyValueSchemas(schema);
-    KafkaTableSerde keySerde = new KafkaTableSerde();
-    KafkaTableSerde valueSerde = new KafkaTableSerde();
+    KafkaTableRowSerde keySerde = new KafkaTableRowSerde();
+    KafkaTableRowSerde valueSerde = new KafkaTableRowSerde();
     keySerde.configure(Collections.singletonMap("schema", schemas.left), true);
     valueSerde.configure(Collections.singletonMap("schema", schemas.right), false);
     Properties props = new Properties();
@@ -109,7 +86,12 @@ public class KafkaTable extends AbstractTable {
             new InMemoryCache<>(new SortedTable.MapComparator()));
     // TODO call close
     cache.init();
+    this.schema = schema;
     this.rows = cache;
+  }
+
+  public Schema getSchema() {
+    return schema;
   }
 
   private Schema toSchema(RelDataType rowType, List<String> keyFields) {

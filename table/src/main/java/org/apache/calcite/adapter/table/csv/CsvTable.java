@@ -95,7 +95,7 @@ public class CsvTable extends AbstractTable {
     Collection modifiableCollection = sortedTable.getModifiableCollection();
     try (CSVReader reader = openCsv(source)) {
       reader.readNext(); // skip header row
-      List<SortedTableColumnType> columnTypes = SortedTableSchema.toColumnTypes(rowType);
+      List<SortedTableColumnType> columnTypes = SortedTableSchema.toColumnTypes(rowType).right;
       RowConverter<?> rowConverter = converter(columnTypes);
       String[] strings = reader.readNext();
       while (strings != null) {

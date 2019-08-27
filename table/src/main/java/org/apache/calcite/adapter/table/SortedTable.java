@@ -146,6 +146,10 @@ public abstract class SortedTable extends AbstractQueryableTable implements Modi
             updateColumnList, sourceExpressionList, flattened);
   }
 
+  public AbstractTable getRawTable() {
+    return rows;
+  }
+
   @Override public Collection getModifiableCollection() {
     return new MapWrapper(rows);
   }

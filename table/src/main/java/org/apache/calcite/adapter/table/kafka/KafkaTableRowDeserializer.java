@@ -16,53 +16,55 @@
  */
 package org.apache.calcite.adapter.table.kafka;
 
-import io.kcache.KafkaCacheConfig;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.calcite.adapter.table.SortedTable;
-import org.apache.calcite.adapter.table.SortedTableSchema;
-import org.apache.calcite.adapter.table.avro.AvroTableSchema;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.schema.Table;
-import org.apache.calcite.util.Pair;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
-public class KafkaTableDeserializer implements Deserializer<Table> {
-  private String bootstrapServers;
+public class KafkaTableRowDeserializer implements Deserializer<Comparable[]> {
+  private final DecoderFactory decoderFactory = DecoderFactory.get();
+  private Schema schema;
 
   @Override
   public void configure(Map<String, ?> configs, boolean isKey) {
-    bootstrapServers = (String) configs.get("bootstrapServers");
+    schema = (Schema) configs.get("schema");
   }
 
   @Override
-  public Table deserialize(String topic, byte[] payload) throws SerializationException {
+  public Comparable[] deserialize(String topic, byte[] payload) throws SerializationException {
     if (payload == null) {
       return null;
     }
     try {
-      Schema.Parser parser1 = new Schema.Parser();
-      Schema avroSchema = parser1.parse(new String(payload, StandardCharsets.UTF_8));
-      Pair<RelDataType, List<String>> rowType = AvroTableSchema.getRowType(avroSchema);
-      Map<String, Object> configs = new HashMap<>();
-      configs.put("bootstrapServers", bootstrapServers);
-      configs.put("schema", avroSchema);
-      configs.put("kind", SortedTable.Kind.KAFKA.name());
-      return SortedTableSchema.createTable(avroSchema.getName(), configs, rowType.left, rowType.right);
-    } catch (RuntimeException e) {
+      DatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+      GenericRecord record = reader.read(null, decoderFactory.binaryDecoder(payload, null));
+      return toRow(record);
+    } catch (IOException | RuntimeException e) {
       // avro deserialization may throw AvroRuntimeException, NullPointerException, etc
-      throw new SerializationException("Error deserializing table", e);
+      throw new SerializationException("Error deserializing Avro message", e);
     }
+  }
+
+  private Comparable[] toRow(GenericRecord record) {
+    int size = schema.getFields().size();
+    Comparable[] row = new Comparable[size];
+    for (int i = 0; i < size; i++) {
+      row[i] = (Comparable) record.get(i);
+    }
+    return row;
   }
 
   @Override
