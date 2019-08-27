@@ -23,22 +23,12 @@ import io.kcache.KeyValue;
 import io.kcache.KeyValueIterator;
 import org.apache.avro.Schema;
 import org.apache.calcite.adapter.table.AbstractTableSchema;
-import org.apache.calcite.adapter.table.SortedTableColumnType;
 import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.adapter.table.avro.AvroTableSchema;
-import org.apache.calcite.model.ModelHandler;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
 import org.apache.kafka.common.serialization.Serdes;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -89,4 +79,14 @@ public class KafkaTableSchema extends AbstractTableSchema {
       tableMap.put(name, table);
     }
   }
+
+  /*
+  @Override
+  public Table put(String name, Table table) {
+    //SortedTable sortedTable = (SortedTable) table;
+    //schemas.put(name, )
+    tableMap.put(name, table);
+
+  }
+   */
 }

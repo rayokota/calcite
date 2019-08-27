@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -36,7 +37,7 @@ public class SortedTableFactory implements TableFactory<SortedTable> {
 
   public SortedTable create(SchemaPlus schema, String name,
                             Map<String, Object> operand, RelDataType rowType) {
-    return SortedTableSchema.createTable(name, operand, rowType);
+    return SortedTableSchema.createTable(name, operand, rowType, Collections.emptyList());
   }
 }
 

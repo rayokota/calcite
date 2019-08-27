@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +105,7 @@ public class CsvTableSchema extends AbstractTableSchema {
       if (sourceSansCsv != null) {
         configs.put("file", source.file().getName());
         String name  = sourceSansCsv.relative(baseSource).path();
-        final Table table = SortedTableSchema.createTable(name, configs, getRowType(source));
+        final Table table = SortedTableSchema.createTable(name, configs, getRowType(source), Collections.emptyList());
         tableMap.put(name, table);
       }
     }
@@ -113,10 +114,10 @@ public class CsvTableSchema extends AbstractTableSchema {
   public static RelDataType getRowType(Source source) {
     try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext(); // get header row
-      Pair<List<String>, List<SortedTableColumnType>> types = getFieldTypes(strings);
+      Pair<List<String>, List<SortedTableColumnType>> types = toColumnTypes(strings);
       List<String> names = types.left;
       List<SortedTableColumnType> fieldTypes = types.right;
-      return SortedTableSchema.deduceRowType(names, fieldTypes);
+      return SortedTableSchema.toRowType(names, fieldTypes);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -127,7 +128,7 @@ public class CsvTableSchema extends AbstractTableSchema {
     return new CSVReader(fileReader);
   }
 
-  private static Pair<List<String>, List<SortedTableColumnType>> getFieldTypes(String[] strings) {
+  private static Pair<List<String>, List<SortedTableColumnType>> toColumnTypes(String[] strings) {
     final List<String> names = new ArrayList<>();
     final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
     if (strings == null) {

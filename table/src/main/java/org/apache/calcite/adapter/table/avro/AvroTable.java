@@ -156,6 +156,7 @@ public class AvroTable extends AbstractTable {
     dataFileWriter.append(user4);
     dataFileWriter.close();
 
+    // TODO remove
     /*
     Schema emptyRecordSchema = new Schema.Parser().parse("{\"type\":\"record\",\"name\":\"EmptyRecord\",\"fields\":[]}");
     GenericRecord emptyRecord = (GenericRecord) GenericData.get().newRecord(null, emptyRecordSchema);

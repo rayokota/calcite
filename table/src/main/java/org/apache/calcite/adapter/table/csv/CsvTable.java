@@ -18,13 +18,13 @@ package org.apache.calcite.adapter.table.csv;
 
 import au.com.bytecode.opencsv.CSVReader;
 import org.apache.calcite.adapter.table.AbstractTable;
-import org.apache.calcite.adapter.table.SortedTable;
 import org.apache.calcite.adapter.table.SortedTableColumnType;
+import org.apache.calcite.adapter.table.SortedTable;
+import org.apache.calcite.adapter.table.SortedTableSchema;
 import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -37,7 +37,6 @@ import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -96,8 +95,8 @@ public class CsvTable extends AbstractTable {
     Collection modifiableCollection = sortedTable.getModifiableCollection();
     try (CSVReader reader = openCsv(source)) {
       reader.readNext(); // skip header row
-      List<SortedTableColumnType> fieldTypes = getFieldTypes(rowType);
-      RowConverter<?> rowConverter = converter(fieldTypes);
+      List<SortedTableColumnType> columnTypes = SortedTableSchema.toColumnTypes(rowType);
+      RowConverter<?> rowConverter = converter(columnTypes);
       String[] strings = reader.readNext();
       while (strings != null) {
         Object row = rowConverter.convertRow(strings);
@@ -130,14 +129,6 @@ public class CsvTable extends AbstractTable {
   private static CSVReader openCsv(Source source) throws IOException {
     final Reader fileReader = source.reader();
     return new CSVReader(fileReader);
-  }
-
-  private static List<SortedTableColumnType> getFieldTypes(RelDataType rowType) {
-    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
-    for (RelDataTypeField field : rowType.getFieldList()) {
-      fieldTypes.add(SortedTableColumnType.of(field.getType().getSqlTypeName()));
-    }
-    return fieldTypes;
   }
 
   private static RowConverter<?> converter(List<SortedTableColumnType> fieldTypes) {

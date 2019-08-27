@@ -24,6 +24,7 @@ import org.apache.calcite.adapter.table.csv.CsvTableSchema;
 import org.apache.calcite.adapter.table.kafka.KafkaTableSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -88,12 +89,8 @@ public class SortedTableSchema extends AbstractSchema {
     tableMap.put(name, table);
   }
 
-  @Override protected Map<String, Table> getTableMap() {
-    return tableMap;
-  }
-
-  public static RelDataType deduceRowType(List<String> names,
-                                          List<SortedTableColumnType> fieldTypes) {
+  public static RelDataType toRowType(List<String> names,
+                                      List<SortedTableColumnType> fieldTypes) {
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
     List<RelDataType> types = new ArrayList<>();
     for (SortedTableColumnType fieldType : fieldTypes) {
@@ -106,6 +103,18 @@ public class SortedTableSchema extends AbstractSchema {
       types.add(type);
     }
     return typeFactory.createStructType(Pair.zip(names, types));
+  }
+
+  public static List<SortedTableColumnType> toColumnTypes(RelDataType rowType) {
+    final List<SortedTableColumnType> fieldTypes = new ArrayList<>();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      fieldTypes.add(SortedTableColumnType.of(field.getType().getSqlTypeName()));
+    }
+    return fieldTypes;
+  }
+
+  @Override protected Map<String, Table> getTableMap() {
+    return tableMap;
   }
 
   public static SortedTable createTable(String name, Map<String, Object> operand, RelDataType rowType) {
